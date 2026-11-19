@@ -18,6 +18,8 @@ export function rateLimitConfig(env = {}) {
   return {
     perMinute: int(env.RATE_LIMIT_PER_MINUTE, 5),
     perDay: int(env.RATE_LIMIT_PER_DAY, 40),
+    marketPerMinute: int(env.MARKET_RATE_LIMIT_PER_MINUTE, 10),
+    marketPerDay: int(env.MARKET_RATE_LIMIT_PER_DAY, 200),
     globalPerDay: int(env.DAILY_REQUEST_CAP, 2000),
     salt: env.RATE_LIMIT_SALT || 'skillmap',
   };
@@ -83,17 +85,27 @@ export function createRateLimiter(env = {}, { fetchImpl = fetch, logger } = {}) 
 
   return {
     backend: primary.name,
-    async check(ip, now = Date.now()) {
+    config: cfg,
+    /**
+     * @param {string} ip
+     * @param {number} [now]
+     * @param {{ scope?: string, perMinute?: number, perDay?: number, countGlobal?: boolean }} [opts]
+     *   scope separates counters per endpoint; countGlobal=false skips the LLM budget cap.
+     */
+    async check(ip, now = Date.now(), opts = {}) {
+      const { scope = 'a', perMinute = cfg.perMinute, perDay = cfg.perDay, countGlobal = true } = opts;
       const id = clientKey(ip, cfg.salt);
       const minute = Math.floor(now / 60_000);
       const today = day(now);
+      const ns = scope === 'a' ? 'sm:rl' : `sm:rl:${scope}`;
 
-      const [perMin, perDay] = await incr([
-        [`sm:rl:m:${id}:${minute}`, 90],
-        [`sm:rl:d:${id}:${today}`, 26 * 3600],
+      const [perMin, daily] = await incr([
+        [`${ns}:m:${id}:${minute}`, 90],
+        [`${ns}:d:${id}:${today}`, 26 * 3600],
       ], now);
-      if (perMin > cfg.perMinute) return { ok: false, code: 'RATE_LIMITED', retryAfter: 60 - Math.floor((now / 1000) % 60) };
-      if (perDay > cfg.perDay) return { ok: false, code: 'DAILY_LIMIT', retryAfter: secondsToUtcMidnight(now) };
+      if (perMin > perMinute) return { ok: false, code: 'RATE_LIMITED', retryAfter: 60 - Math.floor((now / 1000) % 60) };
+      if (daily > perDay) return { ok: false, code: 'DAILY_LIMIT', retryAfter: secondsToUtcMidnight(now) };
+      if (!countGlobal) return { ok: true };
 
       // Global budget is only counted for requests that passed per-client limits,
       // so one abusive client cannot burn the whole day's cap.

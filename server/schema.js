@@ -43,6 +43,12 @@ export const AnalyzeInput = z.object({
     })),
 });
 
+/** /api/market input: a target role is required (preset or sanitized custom). */
+export const MarketInput = z.object({
+  goal: z.preprocess(v => (v == null ? '' : v), goalField).refine(g => g.length > 0, 'Pick a target role to see real job-posting data'),
+  location: AnalyzeInput.shape.location,
+});
+
 export const goalKind = (goal) => (!goal ? 'none' : ROLE_LOOKUP.has(goal.toLowerCase()) ? 'preset' : 'custom');
 
 /** Flatten zod issues to [{ field, message }] for the client. */

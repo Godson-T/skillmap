@@ -39,7 +39,7 @@ export default [
   },
   {
     // Server, serverless functions, config and tests run in Node.
-    files: ['api/**/*.js', 'server/**/*.js', 'shared/**/*.js', 'tests/**/*.js', 'e2e/**/*.js', '*.config.js'],
+    files: ['api/**/*.js', 'server/**/*.js', 'scripts/**/*.js', 'shared/**/*.js', 'tests/**/*.js', 'e2e/**/*.js', '*.config.js'],
     languageOptions: { globals: { ...globals.node } },
   },
 ]

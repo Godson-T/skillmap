@@ -14,6 +14,16 @@ test('form → results smoke', async ({ page }) => {
     })
   })
 
+  await page.route('**/api/market', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ requestId: 'm', market: {
+      source: 'Public Greenhouse and Lever job boards', fetchedAt: new Date().toISOString(), role: 'Full Stack Developer',
+      location: 'India', scope: 'global', localMatches: 3, sampleSize: 25, lowSample: true, companies: ['Acme'],
+      boards: { queried: 20, ok: 19 }, skills: [{ skill: 'React', count: 20, share: 80 }], postings: [],
+    } }),
+  }))
+
   await page.goto('/')
   await expect(page).toHaveTitle('SkillMap')
 
@@ -30,6 +40,8 @@ test('form → results smoke', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Career Trajectories' })).toBeVisible()
   await expect(page.getByText('Skill Readiness:')).toBeVisible()
   await expect(page.locator('canvas')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'What Real Job Postings Ask For' })).toBeVisible()
+  await expect(page.getByText('Only 3 matching postings in India')).toBeVisible()
 
   expect(sent.goal).toBe('Full Stack Developer')
   expect(sent.location).toBe('India')
