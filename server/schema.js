@@ -39,7 +39,7 @@ export const AnalyzeInput = z.object({
   goal: z.preprocess(v => (v == null ? '' : v), goalField),
   location: z.preprocess(v => (v == null || v === '' ? 'US' : v),
     z.enum(/** @type {[string, ...string[]]} */ (LOCATION_VALUES), {
-      errorMap: () => ({ message: `Location must be one of: ${LOCATION_VALUES.join(', ')}` }),
+      error: `Location must be one of: ${LOCATION_VALUES.join(', ')}`,
     })),
 });
 
