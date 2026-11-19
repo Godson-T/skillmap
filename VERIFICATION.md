@@ -181,3 +181,11 @@ Line numbers refer to the baseline commit.
   `maxDuration` is not set for the function.
 - **A3.** `max_tokens: 2500` combined with a reasoning model can return truncated or
   empty JSON. Reasoning tokens count against the completion budget.
+- **A4. Skills input dropped earlier skills (real bug, now fixed).**
+  - The input shows only the in-progress word, but `handleSkillChange`
+    (`src/App.jsx:293-296`) overwrote the entire `form.skills` string with it.
+  - Result: after adding "React", typing "P" replaced the list with "P", so earlier
+    tags vanished.
+  - A regression test in `tests/app.test.jsx` fails on the old code and passes on
+    the fix.
+

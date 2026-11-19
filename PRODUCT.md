@@ -28,22 +28,23 @@ research for you, not a spreadsheet.
 
 ## Inputs
 - Current skills (free text + smart autocomplete from a ~90-skill taxonomy).
-- Target role (optional, dropdown of 30 roles).
+- Target role (optional): autocomplete over 29 preset roles, or a short custom role (≤60 chars, sanitized).
 - Location (US / India / EU / UK / Remote) — shapes salary and market context.
 
 ## Outputs (sections)
 1. Skill Topology Map — force-directed canvas graph (current / bridge / target nodes).
 2. High-Demand Skills — rising skills with demand scores and trend direction.
-3. Declining Skills — skills to deprioritize, with sourced market reasons.
+3. Declining Skills — skills to deprioritize, with brief qualitative reasons (AI estimate; no invented citations).
 4. Career Trajectories — 2–3 tabbed roadpaths, each with phased roles, timelines,
    skills to acquire, and ROI.
 5. High-Yield Micro-Skills — quick wins sorted by impact, with Udemy / Coursera /
    freeCodeCamp learning links.
-6. YouTube Learning Resources — curated tutorial searches per required skill.
+6. Find Tutorials on YouTube — one-click searches per required skill (not curated).
 
 ## Technical context
 - React 18 + Vite 5 frontend, Tailwind CSS 3.4 styling.
-- LLM: Groq (`llama-3.3-70b-versatile`), strict JSON-schema system prompt.
+- LLM: Groq (`openai/gpt-oss-120b` by default, override with `GROQ_MODEL`), JSON mode + zod-validated output.
+- One shared handler (`server/handler.js`) for Vercel and the Vite dev server; prompt in `server/prompt.js`.
 - API key kept server-side (Vercel `api/analyze.js` + Vite dev proxy).
 - Deployed on Vercel.
 
