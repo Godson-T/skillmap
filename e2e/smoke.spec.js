@@ -41,8 +41,9 @@ test('form → results smoke', async ({ page }) => {
   await expect(page.getByRole('tab', { name: 'Full Stack Track' })).toHaveAttribute('aria-selected', 'true')
   await expect(page.getByRole('heading', { name: 'What real job postings ask for' })).toBeVisible()
   await expect(page.getByText('Only 3 matching postings in India')).toBeVisible()
-  await expect(page.getByText('Your ticket wallet')).toBeVisible()
-  await expect(page.locator('canvas')).toBeVisible()
+  await expect(page.getByText(/You hold \d+ of \d+ tickets/)).toBeVisible()
+  await expect(page.getByRole('list', { name: /Route from your skills/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Share route' })).toBeVisible()
   await page.getByRole('button', { name: /Punch when learned/ }).first().click()
   await expect(page.getByRole('button', { name: /^Learned$/ })).toBeVisible()
 

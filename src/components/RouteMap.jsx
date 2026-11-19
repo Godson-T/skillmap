@@ -1,76 +1,45 @@
-import { useEffect, useRef } from 'react';
-import { LAYOUT_TICKS, initialLayout, stepLayout } from '../lib/graphLayout.js';
+import { useMemo } from 'react';
+import { routeStations } from '../lib/routeStations.js';
 
-const COLOR = { current: '#1f3c88', bridge: '#c4532c', target: '#237a4b' };
-const W = 880, H = 360;
+/** The skill topology as a rail line diagram (see lib/routeStations.js). */
 
-/** Skill topology drawn as a rail diagram: held skills, bridge skills, target role. */
 export default function RouteMap({ graph }) {
-  const ref = useRef(null);
-
-  useEffect(() => {
-    const canvas = ref.current;
-    if (!canvas || !graph?.nodes?.length) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = W * dpr; canvas.height = H * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-    const nodes = initialLayout(graph.nodes, W, H);
-    const edges = (graph.edges || [])
-      .map(e => ({ ...e, s: nodes.find(n => n.id === e.from), t: nodes.find(n => n.id === e.to) }))
-      .filter(e => e.s && e.t);
-
-    const draw = () => {
-      ctx.clearRect(0, 0, W, H);
-      // lines
-      edges.forEach(({ s, t }) => {
-        ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(t.x, t.y);
-        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.stroke();
-        ctx.strokeStyle = COLOR[t.type] || '#8fa2c8'; ctx.globalAlpha = 0.55; ctx.lineWidth = 4; ctx.stroke(); ctx.globalAlpha = 1;
-      });
-      // stations
-      nodes.forEach(n => {
-        const c = COLOR[n.type] || '#5d6b80';
-        const r = n.type === 'target' ? 9 : 7;
-        ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-        ctx.fillStyle = '#ffffff'; ctx.fill();
-        ctx.lineWidth = n.type === 'target' ? 4 : 3; ctx.strokeStyle = c; ctx.stroke();
-        if (n.type === 'current') { ctx.beginPath(); ctx.arc(n.x, n.y, 3, 0, Math.PI * 2); ctx.fillStyle = c; ctx.fill(); }
-        ctx.font = `${n.type === 'target' ? 700 : 600} 13px 'Archivo Variable', system-ui, sans-serif`;
-        ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-        const label = n.label;
-        const tw = ctx.measureText(label).width;
-        const lx = n.x + tw + 26 > W ? n.x - tw - 14 : n.x + 14;
-        ctx.fillStyle = 'rgba(251,252,251,0.92)'; ctx.fillRect(lx - 3, n.y - 9, tw + 6, 18);
-        ctx.fillStyle = '#142033'; ctx.fillText(label, lx, n.y);
-      });
-    };
-
-    let raf;
-    let ticks = 0;
-    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    if (reduce) {
-      while (ticks++ < LAYOUT_TICKS) stepLayout(nodes, edges, W, H);
-      draw();
-    } else {
-      const loop = () => { stepLayout(nodes, edges, W, H); draw(); if (++ticks < LAYOUT_TICKS) raf = requestAnimationFrame(loop); };
-      loop();
-    }
-    return () => cancelAnimationFrame(raf);
-  }, [graph]);
-
-  const labels = graph?.nodes?.map(n => n.label).join(', ');
+  const { held, bridges, termini } = useMemo(() => routeStations(graph), [graph]);
   return (
     <div className="sheet">
-      <div className="map-wrap">
-        <canvas ref={ref} width={W} height={H} role="img" aria-label={`Route map of your skills: ${labels}`} />
+      <div className="route">
+        <ol className="route-line" aria-label="Route from your skills to your target role">
+          <li className="stn origin">
+            <span className="route-label">Board here</span>
+            <span className="stn-mark" aria-hidden="true" />
+            <div>
+              <p className="stn-name">Your skills</p>
+              <p className="stn-board">{held.map(n => <span key={n.id}>{n.label}</span>)}</p>
+            </div>
+          </li>
+          {bridges.map((b, i) => (
+            <li className="stn interchange" key={b.id}>
+              {i === 0 && <span className="route-label">Change here</span>}
+              <span className="stn-mark" aria-hidden="true" />
+              <div>
+                <p className="stn-name">{b.label}</p>
+                {b.from.length > 0 && <p className="stn-from">from {b.from.join(', ')}</p>}
+              </div>
+            </li>
+          ))}
+          {termini.map((t, i) => (
+            <li className="stn terminus" key={t.id}>
+              {i === 0 && <span className="route-label">Alight</span>}
+              <span className="stn-mark" aria-hidden="true" />
+              <div><p className="terminus-board">{t.label}</p></div>
+            </li>
+          ))}
+        </ol>
       </div>
       <div className="map-legend">
-        <span><i style={{ background: COLOR.current }} />Skills you hold</span>
-        <span><i style={{ background: COLOR.bridge }} />Bridge skills</span>
-        <span><i style={{ background: COLOR.target }} />Target role</span>
+        <span><i className="lg" aria-hidden="true" />Skills you hold</span>
+        <span><i className="lg ring" aria-hidden="true" />Bridge skill (change here)</span>
+        <span><i className="lg term" aria-hidden="true" />Target role</span>
         <span className="est">Connections are an AI estimate<span className="dagger">†</span></span>
       </div>
     </div>

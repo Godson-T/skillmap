@@ -13,7 +13,7 @@ export default function QuickWins({ micro, routeSkills }) {
   return (
     <div className="sheet">
       <div className="table-wrap">
-        <table className="tt stack">
+        <table className="tt qw stack">
           <thead>
             <tr>
               <th scope="col">Skill</th>

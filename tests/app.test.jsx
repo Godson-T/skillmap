@@ -43,6 +43,12 @@ describe('App: slip → tickets → timetable', () => {
     expect(screen.queryByRole('button', { name: 'Remove Docker' })).toBeNull();
   });
 
+  it('shows a labelled example route before the first run', () => {
+    render(<App />);
+    expect(screen.getByRole('heading', { name: 'What you’ll get' })).toBeTruthy();
+    expect(screen.getByText(/example route with sample data/i)).toBeTruthy();
+  });
+
   it('asks for a skill before submitting', () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch');
     render(<App />);
@@ -99,13 +105,15 @@ describe('App: slip → tickets → timetable', () => {
     addSkill('React');
     fireEvent.change(screen.getByLabelText('Target role'), { target: { value: 'Full Stack Developer' } });
     fireEvent.click(screen.getByRole('button', { name: /Plan my route/ }));
-    await screen.findByText('Your ticket wallet');
+    await screen.findByText(/You hold/);
     await waitFor(() => expect(screen.getAllByRole('button', { name: /Punch when learned/ }).length).toBe(3));
-    const before = screen.getByText(/of 7$/).textContent;
+    const wallet = () => screen.getByText(/You hold/).textContent;
+    const before = wallet();
     fireEvent.click(screen.getAllByRole('button', { name: /Punch when learned/ })[0]);
     expect(screen.getByRole('button', { name: /Learned/, pressed: true })).toBeTruthy();
-    expect(screen.getByText(/of 7$/).textContent).not.toBe(before);
-    expect(JSON.parse(localStorage.getItem('skillmap.learned.v1'))).toHaveLength(1);
+    expect(screen.getByText(/Punched/)).toBeTruthy();
+    expect(wallet()).not.toBe(before);
+    expect(Object.keys(JSON.parse(localStorage.getItem('skillmap.learned.v1')))).toHaveLength(1);
   });
 
   it('shows the friendly server error with field issues and keeps the inputs', async () => {

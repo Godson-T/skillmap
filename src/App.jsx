@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, Route, Ticket, TableProperties } from 'lucide-react';
+import { AlertTriangle, Printer, Share2 } from 'lucide-react';
 import { LOCATIONS } from '../shared/options.js';
 import { canonicalSkill, computeSkillGap } from '../shared/skills.js';
 import BookingSlip from './components/BookingSlip.jsx';
@@ -8,13 +8,16 @@ import PostingsBoard from './components/PostingsBoard.jsx';
 import QuickWins from './components/QuickWins.jsx';
 import RouteMap from './components/RouteMap.jsx';
 import Signals from './components/Signals.jsx';
-import { NextTickets, Readiness } from './components/Tickets.jsx';
+import { NextTickets, Stub, Wallet } from './components/Tickets.jsx';
 import Timetable from './components/Timetable.jsx';
 import { pickNextSkills } from './lib/nextSkills.js';
 
 const LEARNED_KEY = 'skillmap.learned.v1';
 const loadLearned = () => {
-  try { return new Set(JSON.parse(localStorage.getItem(LEARNED_KEY) || '[]')); } catch { return new Set(); }
+  try {
+    const v = JSON.parse(localStorage.getItem(LEARNED_KEY) || '{}');
+    return v && typeof v === 'object' && !Array.isArray(v) ? v : {};
+  } catch { return {}; }
 };
 
 const NAV = [
@@ -27,21 +30,82 @@ const NAV = [
   ['#quick-wins', 'Quick wins'],
 ];
 
-function Legend() {
+/** Empty state: a specimen of what a run produces, labelled as sample data. */
+function Specimen() {
+  const sample = { id: 'docker', skill: 'Docker', evidence: 'measured', count: 12, sample: 40, alsoOnPath: true };
   return (
-    <div className="sheet legend" aria-label="How to read your route">
-      <div>
-        <Ticket size={22} color="var(--rail)" aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />
-        <div><h3>Three tickets</h3><p>The next skills to learn, picked from real postings first. Punch each one when you’ve learned it.</p></div>
+    <section aria-labelledby="specimen-h">
+      <div className="specimen-cap">
+        <h2 id="specimen-h">What you’ll get</h2>
+        <p>An example route with sample data. Solid figures are counted from live postings; <b>†</b> marks an AI estimate.</p>
       </div>
-      <div>
-        <TableProperties size={22} color="var(--rail)" aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />
-        <div><h3>A timetable</h3><p>Each career path laid out stop by stop: the role, when you arrive, and the skills you pick up on the way.</p></div>
+      <div className="specimen">
+        <ol className="tickets" style={{ gridTemplateColumns: '1fr' }} aria-label="Example ticket">
+          <Stub t={sample} serial={1} destination="Backend Engineer" sample />
+        </ol>
+        <div className="sheet">
+          <div className="table-wrap">
+            <table className="tt stack">
+              <caption className="sr-only">Example timetable</caption>
+              <thead>
+                <tr>
+                  <th scope="col" className="stop">Stop</th>
+                  <th scope="col">Station (role)</th>
+                  <th scope="col">Arrives<span className="dagger">†</span></th>
+                  <th scope="col">Via (skills to learn)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="stop"><span className="stop-dot num">1</span></td>
+                  <td className="station">Junior Backend Developer</td>
+                  <td className="arrives num">+4 mo<small>4 mo on this leg</small></td>
+                  <td className="wide"><span className="via"><span>SQL</span><span>REST APIs</span></span></td>
+                </tr>
+                <tr>
+                  <td className="stop"><span className="stop-dot num">2</span></td>
+                  <td className="station">Backend Engineer</td>
+                  <td className="arrives num">+10 mo<small>6 mo on this leg</small></td>
+                  <td className="wide"><span className="via"><span>Docker</span><span>Kubernetes</span></span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="specimen-note">Each path you get is laid out stop by stop like this. Punch a ticket when you’ve learned the skill and your wallet fills up.</p>
+        </div>
       </div>
-      <div>
-        <Route size={22} color="var(--rail)" aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />
-        <div><h3>Measured or estimated</h3><p>Solid figures are counted from live job postings. Anything marked <b>†</b> is an AI estimate.</p></div>
-      </div>
+    </section>
+  );
+}
+
+function routeSummary({ goal, locationLabel, tickets, path }) {
+  const lines = [`My SkillMap route${goal ? ` to ${goal}` : ''} (${locationLabel})`, '', 'Next skills to learn:'];
+  tickets.forEach((t, i) => lines.push(`${i + 1}. ${t.skill}${t.evidence === 'measured' ? ` (in ${t.count} of ${t.sample} real postings)` : ' (AI suggestion)'}`));
+  if (path) {
+    let m = 0;
+    lines.push('', `Timetable, ${path.pathName}:`);
+    path.steps.forEach(st => { m += st.timeMonths; lines.push(`- ${st.role}: about +${m} months, via ${st.skillsNeeded.join(', ')}`); });
+    lines.push('Timings are AI estimates.');
+  }
+  return lines.join('\n');
+}
+
+function ShareBar({ summary }) {
+  const [status, setStatus] = useState('');
+  const share = async () => {
+    try {
+      if (navigator.share) { await navigator.share({ title: 'My SkillMap route', text: summary }); return; }
+      await navigator.clipboard.writeText(summary);
+      setStatus('Route copied to your clipboard');
+    } catch (err) {
+      if (err?.name !== 'AbortError') setStatus('Couldn’t share from this browser. Try Print instead.');
+    }
+  };
+  return (
+    <div className="sharebar">
+      <button type="button" className="btn btn-quiet" onClick={share}><Share2 size={15} aria-hidden="true" />Share route</button>
+      <button type="button" className="btn btn-quiet" onClick={() => window.print()}><Printer size={15} aria-hidden="true" />Print or save as PDF</button>
+      <span className="status" role="status">{status}</span>
     </div>
   );
 }
@@ -76,7 +140,7 @@ export default function App() {
 
   const allSkills = useMemo(() => [...skills, draft.trim()].filter(Boolean), [skills, draft]);
   const runSkills = submitted?.skills ?? allSkills;
-  const learnedLabels = useMemo(() => [...learned], [learned]);
+  const learnedLabels = useMemo(() => Object.keys(learned), [learned]);
   const ownedSkills = useMemo(() => [...runSkills, ...learnedLabels], [runSkills, learnedLabels]);
   const locationLabel = (LOCATIONS.find(l => l.value === (submitted?.location ?? location))?.label ?? location).replace(/^\S+\s/, '');
 
@@ -90,19 +154,23 @@ export default function App() {
     for (const p of data?.careerPaths ?? []) for (const st of p.steps) for (const s of st.skillsNeeded) {
       const c = canonicalSkill(s); if (c && !seen.has(c.id)) seen.set(c.id, s);
     }
-    return [...seen.values()].slice(0, 12);
+    return [...seen.values()];
   }, [data]);
 
   useEffect(() => {
-    try { localStorage.setItem(LEARNED_KEY, JSON.stringify([...learned])); } catch { /* storage unavailable */ }
+    try { localStorage.setItem(LEARNED_KEY, JSON.stringify(learned)); } catch { /* storage unavailable */ }
   }, [learned]);
   useEffect(() => { if (data) resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [data]);
 
   const toggleLearned = (id) => setLearned(prev => {
-    const next = new Set(prev);
-    if (next.has(id)) next.delete(id); else next.add(id);
+    const next = { ...prev };
+    if (next[id]) delete next[id]; else next[id] = new Date().toISOString();
     return next;
   });
+  const summary = useMemo(
+    () => (data ? routeSummary({ goal: submitted?.goal, locationLabel, tickets, path: data.careerPaths[tab] }) : ''),
+    [data, submitted, locationLabel, tickets, tab],
+  );
 
   /* Live job-posting data runs in parallel and independently of the AI report */
   const loadMarket = async ({ goal: g, location: loc }) => {
@@ -180,7 +248,7 @@ export default function App() {
         />
 
         {!data && !loading && !error && marketState.status === 'idle' && (
-          <div className="section"><Legend /></div>
+          <div className="section"><Specimen /></div>
         )}
 
         {error && (
@@ -200,14 +268,15 @@ export default function App() {
             <section className="section" id="tickets" aria-labelledby="tickets-h">
               <div className="section-head">
                 <h2 id="tickets-h">Your next three tickets</h2>
-                <p>Start here. Measured picks come from real postings; the rest are AI suggestions from your route.</p>
+                <ShareBar summary={summary} />
               </div>
-              <div className="grid-main">
-                <NextTickets
-                  tickets={tickets} learned={learned} onToggle={toggleLearned} locationLabel={locationLabel}
-                  waitingForPostings={marketState.status === 'loading'}
-                />
-                <Readiness gap={gap} />
+              <p className="sheet-sub" style={{ margin: '-4px 0 14px' }}>Start here. Measured picks come from real postings; the rest are AI suggestions from your route.</p>
+              <NextTickets
+                tickets={tickets} learned={learned} onToggle={toggleLearned} locationLabel={locationLabel}
+                destination={submitted?.goal} waitingForPostings={marketState.status === 'loading'}
+              />
+              <div style={{ marginTop: 16 }}>
+                <Wallet gap={gap} learned={learned} routeSkills={routeSkills} />
               </div>
             </section>
 
@@ -247,7 +316,7 @@ export default function App() {
                 <h2 id="qw-h">Quick wins</h2>
                 <p>Small skills with a big payoff, plus searches to find a course. Links open search results, not vetted courses.</p>
               </div>
-              <QuickWins micro={data.topMicroSkills} routeSkills={routeSkills} />
+              <QuickWins micro={data.topMicroSkills} routeSkills={routeSkills.slice(0, 12)} />
             </section>
           </>
         )}
