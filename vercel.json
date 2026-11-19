@@ -3,17 +3,6 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/$1"
-    }
-  ],
-  "functions": {
-    "api/analyze.js": {
-      "maxDuration": 60
-    },
-    "api/market.js": {
-      "maxDuration": 30
-    }
-  }
+    { "source": "/api/(.*)", "destination": "/api/$1" }
+  ]
 }

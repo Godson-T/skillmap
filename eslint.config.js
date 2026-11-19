@@ -5,7 +5,7 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 
 export default [
-  { ignores: ['dist', 'coverage', 'playwright-report', 'test-results', '.impeccable'] },
+  { ignores: ['dist'] },
   {
     files: ['**/*.{js,jsx}'],
     languageOptions: {
@@ -29,17 +29,10 @@ export default [
       ...react.configs['jsx-runtime'].rules,
       ...reactHooks.configs.recommended.rules,
       'react/jsx-no-target-blank': 'off',
-      // Plain-JS project without PropTypes; props are validated at the API boundary (server/schema.js).
-      'react/prop-types': 'off',
       'react-refresh/only-export-components': [
         'warn',
         { allowConstantExport: true },
       ],
     },
-  },
-  {
-    // Server, serverless functions, config and tests run in Node.
-    files: ['api/**/*.js', 'server/**/*.js', 'scripts/**/*.js', 'shared/**/*.js', 'tests/**/*.js', 'e2e/**/*.js', '*.config.js'],
-    languageOptions: { globals: { ...globals.node } },
   },
 ]
