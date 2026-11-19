@@ -151,3 +151,15 @@ export function computeSkillGap(userSkills, careerPaths) {
     total: needed.length,
   };
 }
+
+/**
+ * Every surface form (label + aliases) for each canonical skill. Used by the
+ * job-posting extractor, which needs the raw spellings rather than lookup keys.
+ * @returns {Array<{ label: string, forms: string[] }>}
+ */
+export function skillSurfaceForms() {
+  return [...new Set([...SUGGESTED_SKILLS, ...EXTRA_SKILLS])].map(label => ({
+    label,
+    forms: [label, ...(ALIASES[label] ?? [])],
+  }));
+}

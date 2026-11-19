@@ -37,6 +37,10 @@ them.
 
 ### 1. Ground skill demand in real job postings
 
+> **Status:** first version shipped on `prod-hardening` with Greenhouse and Lever only
+> (`/api/market`, the "What Real Job Postings Ask For" section). Not yet done: feeding
+> the measured counts into the LLM prompt, and Adzuna for broader India/EU coverage.
+
 **Impact: very high. Effort: medium.**
 
 - **Problem:**
@@ -207,7 +211,7 @@ them.
 
 ## Recommended sequencing
 
-1. **Now (this branch):** honesty labels, validation, cost controls. Done.
+1. **Now (this branch):** honesty labels, validation, cost controls, and live posting data from Greenhouse/Lever. Done.
 2. **Next 2 weeks:** #3 study plan + hours, #6 feedback, #2A local tracking. These
    cost no money and need no licensing.
 3. **Then:** #1 with Greenhouse/Lever only (free), plus #5 for US/UK (public data).

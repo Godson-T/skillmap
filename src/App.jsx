@@ -8,6 +8,7 @@ import {
 import { LIMITS, LOCATIONS, SUGGESTED_SKILLS, TARGET_ROLES } from '../shared/options.js';
 import { computeSkillGap } from '../shared/skills.js';
 import { initialLayout, stepLayout, LAYOUT_TICKS } from './lib/graphLayout.js';
+import MarketCard from './components/MarketCard.jsx';
 
 /* ─── HELPERS ────────────────────────────────────────────────────────────────── */
 const DIFFICULTY = {
@@ -159,6 +160,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState(null);
   const [meta, setMeta] = useState(null);
+  const [marketState, setMarketState] = useState({ status: 'idle' });
   const [error, setError] = useState('');
   const [tab, setTab] = useState(0);
   const [showSkillDrop, setShowSkillDrop] = useState(false);
@@ -175,11 +177,30 @@ export default function App() {
 
   useEffect(() => { if (data) resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [data]);
 
-  const reset = () => { setData(null); setMeta(null); setError(''); setTab(0); };
+  const reset = () => { setData(null); setMeta(null); setError(''); setTab(0); setMarketState({ status: 'idle' }); };
 
   /* API call — the server validates input, calls the model and validates the report */
+  /* Live job-posting data runs in parallel and independently of the AI report */
+  const loadMarket = async ({ goal, location }) => {
+    if (!goal.trim()) { setMarketState({ status: 'needs-role' }); return; }
+    setMarketState({ status: 'loading' });
+    try {
+      const res = await fetch('/api/market', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ goal, location }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.market) throw new Error(json?.error?.message || `HTTP ${res.status}`);
+      setMarketState({ status: 'ready', market: json.market });
+    } catch (err) {
+      setMarketState({ status: 'error', error: err instanceof TypeError ? 'network error' : err.message });
+    }
+  };
+
   const analyze = async (e) => {
     e.preventDefault(); reset(); setLoading(true);
+    loadMarket({ goal: form.goal, location: form.location });
     try {
       const res = await fetch('/api/analyze', {
         method: 'POST',
@@ -382,6 +403,17 @@ export default function App() {
 
         {/* ── LOADING ── */}
         {loading && <Loader />}
+
+        {/* ── LIVE JOB-POSTING DATA ── */}
+        {marketState.status !== 'idle' && (
+          <div style={{ marginBottom: 24 }}>
+            <MarketCard
+              state={marketState}
+              userSkills={form.skills}
+              locationLabel={(LOCATIONS.find(l => l.value === form.location)?.label ?? form.location).replace(/^\S+\s/, '')}
+            />
+          </div>
+        )}
 
         {/* ── RESULTS ── */}
         {data && !loading && (

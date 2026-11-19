@@ -11,6 +11,9 @@
   "functions": {
     "api/analyze.js": {
       "maxDuration": 60
+    },
+    "api/market.js": {
+      "maxDuration": 30
     }
   }
 }

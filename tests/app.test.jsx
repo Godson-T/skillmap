@@ -26,9 +26,17 @@ describe('App form → results', () => {
   });
 
   it('submits validated fields and renders the report with estimate labels', async () => {
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
-      requestId: 'r1', report: fixture, meta: { estimate: true, disclaimer: 'Test disclaimer.' },
-    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    const market = {
+      source: 'Public Greenhouse and Lever job boards', fetchedAt: '2026-11-19T10:00:00Z', role: 'Full Stack Developer',
+      location: 'US', scope: 'location', localMatches: 40, sampleSize: 40, lowSample: false, companies: ['Acme', 'Globex'],
+      boards: { queried: 20, ok: 18 }, skills: [{ skill: 'React', count: 30, share: 75 }, { skill: 'Docker', count: 12, share: 30 }],
+      postings: [{ title: 'Full Stack Engineer', company: 'Acme', location: 'NYC', url: 'https://example.com/1' }],
+    };
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => new Response(JSON.stringify(
+      url === '/api/market'
+        ? { requestId: 'm1', market }
+        : { requestId: 'r1', report: fixture, meta: { estimate: true, disclaimer: 'Test disclaimer.' } },
+    ), { status: 200, headers: { 'Content-Type': 'application/json' } }));
 
     render(<App />);
     const input = screen.getByLabelText('Current skills');
@@ -38,11 +46,19 @@ describe('App form → results', () => {
     fireEvent.click(screen.getByRole('button', { name: /Analyze My Career/i }));
 
     await screen.findByText('Skill Topology Map');
-    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    const analyzeCall = fetchMock.mock.calls.find(c => c[0] === '/api/analyze');
+    const marketCall = fetchMock.mock.calls.find(c => c[0] === '/api/market');
+    expect(JSON.parse(marketCall[1].body)).toEqual({ goal: 'Full Stack Developer', location: 'US' });
+    const body = JSON.parse(analyzeCall[1].body);
     expect(body.skills.split(',').map(s => s.trim()).filter(Boolean)).toEqual(['JavaScript', 'React']);
     expect(body).toMatchObject({ goal: 'Full Stack Developer', location: 'US' });
 
     expect(screen.getByText('Test disclaimer.')).toBeTruthy();
+    // Live posting data: counts with source, and the user's own skills flagged
+    await screen.findByText('What Real Job Postings Ask For');
+    expect(screen.getByText(/of 40 \(75%\)/)).toBeTruthy();
+    expect(screen.getAllByText('you have this')).toHaveLength(1);
+    expect(screen.getByText(/Source: Public Greenhouse and Lever job boards \(18 of 20/)).toBeTruthy();
     expect(screen.getAllByText(/Upside \(AI estimate\)/).length).toBeGreaterThan(0);
     expect(screen.getAllByText('Full Stack Track').length).toBeGreaterThan(0);
     // React is one of 7 distinct needed skills in the fixture → 14%
@@ -53,7 +69,7 @@ describe('App form → results', () => {
   });
 
   it('shows the friendly server error message and field issues', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () => new Response(JSON.stringify({
       requestId: 'r2',
       error: { code: 'INVALID_INPUT', message: 'A couple of details need a quick tweak.', issues: [{ field: 'skills', message: 'Please list 25 skills or fewer' }] },
     }), { status: 400 }));
