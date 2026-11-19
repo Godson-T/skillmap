@@ -1,0 +1,647 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-19T18:12:39+00:00",
+  "title": "Design System: SkillMap",
+  "extensions": {
+    "colorMeta": {
+      "rail": {
+        "role": "primary",
+        "displayName": "Rail Blue",
+        "canonical": "#1f3c88",
+        "tonalRamp": [
+          "#161f37",
+          "#21325f",
+          "#29458e",
+          "#2f59c6",
+          "#5f7fd3",
+          "#94a7dc",
+          "#c4cee8",
+          "#edf0f7"
+        ],
+        "cssVar": "--rail"
+      },
+      "rail-deep": {
+        "role": "primary",
+        "displayName": "Deep Rail",
+        "canonical": "#162c66",
+        "tonalRamp": [
+          "#151f37",
+          "#203160",
+          "#284590",
+          "#2d58c8",
+          "#5d7ed5",
+          "#93a7dd",
+          "#c4cee8",
+          "#edf0f7"
+        ],
+        "cssVar": "--rail-deep"
+      },
+      "rail-ink": {
+        "role": "primary",
+        "displayName": "Rail Ink",
+        "canonical": "#e8eefc",
+        "tonalRamp": [
+          "#121e3a",
+          "#1a3166",
+          "#1e439a",
+          "#1e55d7",
+          "#527ce0",
+          "#8ca6e4",
+          "#c0cdec",
+          "#ecf0f8"
+        ],
+        "cssVar": "--rail-ink"
+      },
+      "rail-ink-dim": {
+        "role": "primary",
+        "displayName": "Rail Ink Dim",
+        "canonical": "#aebce6",
+        "tonalRamp": [
+          "#181f34",
+          "#26335a",
+          "#314786",
+          "#3b5bba",
+          "#6880ca",
+          "#99a8d6",
+          "#c7cfe5",
+          "#eef0f6"
+        ],
+        "cssVar": "--rail-ink-dim"
+      },
+      "rail-tint": {
+        "role": "primary",
+        "displayName": "Rail Tint",
+        "canonical": "#e3eafb",
+        "tonalRamp": [
+          "#131e3a",
+          "#1b3065",
+          "#204398",
+          "#2055d5",
+          "#537cdf",
+          "#8da6e3",
+          "#c1cdeb",
+          "#edf0f8"
+        ],
+        "cssVar": "none (literal in src/index.css)"
+      },
+      "rail-wash": {
+        "role": "primary",
+        "displayName": "Rail Wash",
+        "canonical": "#eef2fb",
+        "tonalRamp": [
+          "#162036",
+          "#21345e",
+          "#2a498d",
+          "#305ec5",
+          "#6083d2",
+          "#94aadb",
+          "#c5cfe8",
+          "#eef0f7"
+        ],
+        "cssVar": "none (literal in src/index.css)"
+      },
+      "platform-mint": {
+        "role": "neutral",
+        "displayName": "Platform Mint",
+        "canonical": "#e6efe8",
+        "tonalRamp": [
+          "#202c23",
+          "#354b3a",
+          "#4a6d52",
+          "#60956c",
+          "#85ad8e",
+          "#abc4b1",
+          "#d0dcd3",
+          "#f1f4f1"
+        ],
+        "cssVar": "--ground"
+      },
+      "platform-line": {
+        "role": "neutral",
+        "displayName": "Platform Line",
+        "canonical": "#cfdcd3",
+        "tonalRamp": [
+          "#222a25",
+          "#38473d",
+          "#4f6857",
+          "#688d73",
+          "#8aa893",
+          "#afc1b4",
+          "#d2dbd4",
+          "#f1f3f2"
+        ],
+        "cssVar": "--ground-line"
+      },
+      "sheet": {
+        "role": "neutral",
+        "displayName": "Timetable Sheet",
+        "canonical": "#fbfcfb",
+        "tonalRamp": [
+          "#232a23",
+          "#394739",
+          "#506750",
+          "#698c69",
+          "#8ca68c",
+          "#afc0af",
+          "#d2dad2",
+          "#f1f3f1"
+        ],
+        "cssVar": "--sheet"
+      },
+      "sheet-alt": {
+        "role": "neutral",
+        "displayName": "Zebra Row",
+        "canonical": "#f2f6f4",
+        "tonalRamp": [
+          "#212b26",
+          "#374940",
+          "#4d6a5c",
+          "#65907a",
+          "#88aa99",
+          "#adc2b8",
+          "#d1dbd6",
+          "#f1f4f2"
+        ],
+        "cssVar": "--sheet-alt"
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Blue Hairline",
+        "canonical": "#c9d4e6",
+        "tonalRamp": [
+          "#1d2430",
+          "#2e3b52",
+          "#3e5579",
+          "#4e70a7",
+          "#7791bb",
+          "#a3b3cd",
+          "#ccd4e1",
+          "#eff2f5"
+        ],
+        "cssVar": "--rule"
+      },
+      "hairline-strong": {
+        "role": "neutral",
+        "displayName": "Strong Hairline",
+        "canonical": "#8fa2c8",
+        "tonalRamp": [
+          "#1d232f",
+          "#2f3a51",
+          "#405377",
+          "#516da3",
+          "#798eb9",
+          "#a4b1cb",
+          "#cdd3e0",
+          "#f0f1f5"
+        ],
+        "cssVar": "--rule-strong"
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#142033",
+        "tonalRamp": [
+          "#1b2432",
+          "#2a3b55",
+          "#39547f",
+          "#466faf",
+          "#7090c2",
+          "#9fb2d1",
+          "#cad3e3",
+          "#eff2f6"
+        ],
+        "cssVar": "--ink"
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Ink 2",
+        "canonical": "#3f4d63",
+        "tonalRamp": [
+          "#20252c",
+          "#353d4b",
+          "#4a586e",
+          "#607495",
+          "#8494ae",
+          "#abb5c4",
+          "#d0d5dc",
+          "#f1f2f4"
+        ],
+        "cssVar": "--ink-2"
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "Ink 3",
+        "canonical": "#5d6b80",
+        "tonalRamp": [
+          "#22252a",
+          "#383e48",
+          "#4f5969",
+          "#67778d",
+          "#8a96a8",
+          "#afb6c1",
+          "#d2d5db",
+          "#f1f2f3"
+        ],
+        "cssVar": "--ink-3"
+      },
+      "stock-salmon": {
+        "role": "secondary",
+        "displayName": "Salmon Stock",
+        "canonical": "#f4c3ae",
+        "tonalRamp": [
+          "#3a1e12",
+          "#65311a",
+          "#99431f",
+          "#d6561f",
+          "#e07d52",
+          "#e3a68c",
+          "#eccec1",
+          "#f8f0ec"
+        ],
+        "cssVar": "--stock-salmon"
+      },
+      "stock-mint": {
+        "role": "secondary",
+        "displayName": "Mint Stock",
+        "canonical": "#c3e3cd",
+        "tonalRamp": [
+          "#1d3023",
+          "#2e5239",
+          "#3f7951",
+          "#4fa66a",
+          "#77bb8c",
+          "#a3ccb0",
+          "#cce0d2",
+          "#eff5f1"
+        ],
+        "cssVar": "--stock-mint"
+      },
+      "stock-sky": {
+        "role": "secondary",
+        "displayName": "Sky Stock",
+        "canonical": "#c2dcf1",
+        "tonalRamp": [
+          "#162837",
+          "#21435f",
+          "#2a618e",
+          "#2f82c6",
+          "#5f9fd3",
+          "#94bbdb",
+          "#c4d8e8",
+          "#edf3f7"
+        ],
+        "cssVar": "--stock-sky"
+      },
+      "signal-green": {
+        "role": "tertiary",
+        "displayName": "Signal Green",
+        "canonical": "#237a4b",
+        "tonalRamp": [
+          "#183525",
+          "#245b3e",
+          "#2f8858",
+          "#38bd75",
+          "#66cc95",
+          "#98d7b5",
+          "#c7e6d5",
+          "#eef6f2"
+        ],
+        "cssVar": "--sig-green"
+      },
+      "signal-green-bg": {
+        "role": "tertiary",
+        "displayName": "Signal Green Wash",
+        "canonical": "#dcefe3",
+        "tonalRamp": [
+          "#1c3024",
+          "#2d523b",
+          "#3e7a54",
+          "#4ea76f",
+          "#76bc90",
+          "#a2cdb2",
+          "#cce1d3",
+          "#eff5f2"
+        ],
+        "cssVar": "--sig-green-bg"
+      },
+      "signal-green-ink": {
+        "role": "tertiary",
+        "displayName": "Signal Green Ink",
+        "canonical": "#17583a",
+        "tonalRamp": [
+          "#173627",
+          "#235d42",
+          "#2d8b5f",
+          "#34c180",
+          "#63cf9d",
+          "#96d9ba",
+          "#c6e7d7",
+          "#eef7f3"
+        ],
+        "cssVar": "none (literal in src/index.css)"
+      },
+      "signal-amber": {
+        "role": "tertiary",
+        "displayName": "Signal Amber",
+        "canonical": "#a86500",
+        "tonalRamp": [
+          "#402c0c",
+          "#714a0e",
+          "#ac6c0c",
+          "#f39302",
+          "#f6ac3c",
+          "#f1c37e",
+          "#f3dcba",
+          "#faf4eb"
+        ],
+        "cssVar": "--sig-amber"
+      },
+      "signal-amber-bg": {
+        "role": "tertiary",
+        "displayName": "Signal Amber Wash",
+        "canonical": "#fbecd0",
+        "tonalRamp": [
+          "#3c2d10",
+          "#694c16",
+          "#9f7018",
+          "#e09915",
+          "#e7b14b",
+          "#e8c687",
+          "#eeddbe",
+          "#f9f4ec"
+        ],
+        "cssVar": "--sig-amber-bg"
+      },
+      "signal-red": {
+        "role": "tertiary",
+        "displayName": "Signal Red",
+        "canonical": "#b8322a",
+        "tonalRamp": [
+          "#371816",
+          "#5f2421",
+          "#8e2f29",
+          "#c6372f",
+          "#d3655f",
+          "#dc9894",
+          "#e8c6c4",
+          "#f7eeed"
+        ],
+        "cssVar": "--sig-red"
+      },
+      "signal-red-bg": {
+        "role": "tertiary",
+        "displayName": "Signal Red Wash",
+        "canonical": "#f8dedb",
+        "tonalRamp": [
+          "#381815",
+          "#61251e",
+          "#923126",
+          "#cb3a29",
+          "#d8675a",
+          "#de9991",
+          "#e9c7c3",
+          "#f7eeed"
+        ],
+        "cssVar": "--sig-red-bg"
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "The single intro heading; 25px under 720px."
+      },
+      "ticket": {
+        "displayName": "Ticket",
+        "purpose": "Skill name on a ticket stub."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Section heads."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Sheet titles, wallet head."
+      },
+      "station": {
+        "displayName": "Station",
+        "purpose": "Role names in timetable rows."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Prose, 58-70ch."
+      },
+      "body-small": {
+        "displayName": "Body Small",
+        "purpose": "Sheet subtitles, stub reasons, legends."
+      },
+      "figure": {
+        "displayName": "Figure",
+        "purpose": "Every number: counts, months, serials (.num)."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Uppercase condensed captions: column heads, field labels, marks, ticket print."
+      }
+    },
+    "shadows": [
+      {
+        "name": "sheet",
+        "value": "0 1px 2px rgba(22, 44, 102, 0.06), 0 8px 24px -12px rgba(22, 44, 102, 0.18)",
+        "purpose": "Every timetable sheet (--shadow-sheet)."
+      },
+      {
+        "name": "stub",
+        "value": "drop-shadow(0 6px 10px rgba(20, 32, 51, 0.16)) drop-shadow(0 1px 1px rgba(20, 32, 51, 0.1))",
+        "purpose": "Ticket stubs, as a filter so it follows the mask cut-outs."
+      },
+      {
+        "name": "button-primary",
+        "value": "0 1px 0 #162c66, 0 4px 12px -6px rgba(22, 44, 102, 0.6)",
+        "purpose": "Deep-rail lip plus soft lift on the primary button."
+      },
+      {
+        "name": "listbox",
+        "value": "0 12px 28px -12px rgba(22, 44, 102, 0.35)",
+        "purpose": "Autocomplete popovers."
+      },
+      {
+        "name": "focus-control",
+        "value": "0 0 0 3px rgba(31, 60, 136, 0.18)",
+        "purpose": "Focus ring on inputs and selects, with a rail border."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "All state transitions (--ease-out)."
+      },
+      {
+        "name": "state",
+        "value": "150-160ms",
+        "purpose": "Hover, border and colour changes."
+      },
+      {
+        "name": "press",
+        "value": "120ms",
+        "purpose": "Primary button 1px press."
+      },
+      {
+        "name": "punch",
+        "value": "240ms",
+        "purpose": "Ticket punch hole opening (--punch 0 to 9px)."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "0.01ms",
+        "purpose": "All animation and transition durations under prefers-reduced-motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "tablet",
+        "value": "960px"
+      },
+      {
+        "name": "phone",
+        "value": "720px"
+      }
+    ],
+    "fonts": {
+      "source": "@fontsource-variable/archivo (wdth.css, wdth-italic.css), self-hosted",
+      "axes": [
+        "wght",
+        "wdth"
+      ]
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one main action per view.",
+      "html": "<button class=\"ds-btn-primary\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14M12 5l7 7-7 7\"/></svg>Plan my route</button>",
+      "css": ".ds-btn-primary{font-family:var(--font);min-height:44px;display:inline-flex;align-items:center;gap:8px;padding:0 18px;border-radius:6px;border:1px solid transparent;background:var(--rail);color:#fff;font-size:15px;font-weight:650;cursor:pointer;box-shadow:0 1px 0 var(--rail-deep),0 4px 12px -6px rgba(22,44,102,.6);transition:background 160ms var(--ease-out),transform 120ms var(--ease-out)}.ds-btn-primary:hover{background:var(--rail-deep)}.ds-btn-primary:active{transform:translateY(1px)}.ds-btn-primary:focus-visible{outline:2px solid var(--rail);outline-offset:2px}"
+    },
+    {
+      "name": "Quiet Button",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "Secondary actions (share, print); pressed state turns signal green.",
+      "html": "<button class=\"ds-btn-quiet\">Share route</button> <button class=\"ds-btn-quiet\" aria-pressed=\"true\">Saved</button>",
+      "css": ".ds-btn-quiet{font-family:var(--font);min-height:34px;padding:0 12px;border-radius:6px;border:1px solid var(--rule-strong);background:transparent;color:var(--rail-deep);font-size:13.5px;font-weight:650;cursor:pointer;transition:background 160ms var(--ease-out)}.ds-btn-quiet:hover{background:#e3eafb;border-color:var(--rail)}.ds-btn-quiet[aria-pressed=true]{background:var(--sig-green-bg);border-color:var(--sig-green);color:var(--sig-green)}.ds-btn-quiet:focus-visible{outline:2px solid var(--rail);outline-offset:2px}"
+    },
+    {
+      "name": "Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Labelled control on the booking slip.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">To · target role</span><input class=\"ds-control\" placeholder=\"Full Stack Developer\"><span class=\"ds-field-hint\">Optional. Needed for real-posting data.</span></label>",
+      "css": ".ds-field{font-family:var(--font);display:flex;flex-direction:column;gap:6px;max-width:320px}.ds-field-label{font-size:12px;font-weight:700;font-stretch:85%;letter-spacing:.07em;text-transform:uppercase;color:var(--rail-deep)}.ds-field-hint{font-size:12.5px;color:var(--ink-3)}.ds-control{font:inherit;min-height:44px;background:#fff;border:1px solid var(--rule-strong);border-radius:6px;padding:9px 12px;font-size:15px;color:var(--ink);transition:border-color 150ms var(--ease-out),box-shadow 150ms var(--ease-out)}.ds-control:hover{border-color:var(--rail)}.ds-control:focus{outline:none;border-color:var(--rail);box-shadow:0 0 0 3px rgba(31,60,136,.18)}"
+    },
+    {
+      "name": "Top Bar",
+      "kind": "nav",
+      "refersTo": "topbar",
+      "description": "Sticky rail-blue bar with wordmark and section links.",
+      "html": "<nav class=\"ds-topbar\"><span class=\"ds-wordmark\">SkillMap</span><a href=\"#\">Plan</a><a href=\"#\">Next tickets</a><a href=\"#\">Timetable</a></nav>",
+      "css": ".ds-topbar{font-family:var(--font);display:flex;align-items:center;gap:4px;height:56px;padding:0 24px;background:var(--rail);border-bottom:3px solid var(--rail-deep)}.ds-wordmark{color:#fff;font-size:19px;font-weight:750;font-stretch:88%;margin-right:24px}.ds-topbar a{color:var(--rail-ink-dim);text-decoration:none;font-size:13.5px;font-weight:550;padding:7px 11px;border-radius:4px;transition:color 160ms var(--ease-out),background 160ms var(--ease-out)}.ds-topbar a:hover{color:#fff;background:rgba(255,255,255,.08)}.ds-topbar a:focus-visible{outline:2px solid #fff;outline-offset:2px}"
+    },
+    {
+      "name": "Measured / Estimate Marks",
+      "kind": "chip",
+      "refersTo": "mark-measured",
+      "description": "Provenance tags: solid for counted, dashed for AI estimate.",
+      "html": "<span class=\"ds-mark ds-mark-m\">Measured</span> <span class=\"ds-mark ds-mark-e\">AI estimate</span> <span class=\"ds-est\">Your route needs it.<span class=\"ds-dagger\">†</span></span>",
+      "css": ".ds-mark{font-family:var(--font);display:inline-flex;font-size:11px;font-weight:700;font-stretch:85%;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:3px;border:1px solid;line-height:1.5}.ds-mark-m{color:var(--rail-deep);border-color:var(--rail);background:#e3eafb}.ds-mark-e{color:var(--ink-2);border-color:var(--rule-strong);border-style:dashed}.ds-est{font-family:var(--font);font-style:italic;color:var(--ink-2);font-size:13.5px}.ds-dagger{font-style:normal;font-weight:700;color:var(--ink-3)}"
+    },
+    {
+      "name": "Ticket Stub",
+      "kind": "custom",
+      "refersTo": "ticket-stub",
+      "description": "Signature card ticket with mask-cut perforation notches and a punch hole.",
+      "html": "<div class=\"ds-stub\"><div class=\"ds-stub-head\"><h3>TypeScript</h3><span class=\"ds-mark ds-mark-m\">Measured</span></div><p class=\"ds-stub-why\">Named in <b>22 of 34</b> real postings for your role.</p><div class=\"ds-stub-foot\"><button class=\"ds-punch\">Punch when learned</button><span class=\"ds-stub-print\">No. 0001 · to Full Stack Developer</span></div></div>",
+      "css": ".ds-stub{font-family:var(--font);--p:9px;position:relative;display:flex;flex-direction:column;max-width:340px;background:var(--stock-salmon);color:var(--ink);border-radius:7px;filter:drop-shadow(0 6px 10px rgba(20,32,51,.16)) drop-shadow(0 1px 1px rgba(20,32,51,.1));-webkit-mask:radial-gradient(circle 7px at 0 64%,#0000 98%,#000),radial-gradient(circle 7px at 100% 64%,#0000 98%,#000),radial-gradient(circle var(--p) at calc(100% - 28px) calc(64% - 22px),#0000 98%,#000);-webkit-mask-composite:source-in,source-in;mask:radial-gradient(circle 7px at 0 64%,#0000 98%,#000),radial-gradient(circle 7px at 100% 64%,#0000 98%,#000),radial-gradient(circle var(--p) at calc(100% - 28px) calc(64% - 22px),#0000 98%,#000);mask-composite:intersect}.ds-stub-head{display:flex;justify-content:space-between;gap:10px;padding:16px 16px 0}.ds-stub-head h3{margin:0;font-size:28px;line-height:1.02;font-weight:780;font-stretch:76%}.ds-stub-head .ds-mark{margin-top:5px;font-size:11px;font-weight:700;font-stretch:85%;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:3px;border:1px solid var(--rail);color:var(--rail-deep);background:#e3eafb;height:fit-content}.ds-stub-why{margin:0;padding:10px 52px 14px 16px;font-size:13.5px;line-height:1.45}.ds-stub-why b{font-variant-numeric:tabular-nums;font-stretch:80%}.ds-stub-foot{border-top:1.5px dashed rgba(20,32,51,.18);padding:10px 16px 12px;display:flex;flex-wrap:wrap;gap:8px}.ds-punch{font:inherit;min-height:34px;padding:0 12px;border-radius:4px;border:1.5px solid rgba(20,32,51,.55);background:rgba(255,255,255,.35);font-size:13px;font-weight:700;cursor:pointer}.ds-punch:hover{background:rgba(255,255,255,.7)}.ds-punch:focus-visible{outline:2px solid var(--rail);outline-offset:2px}.ds-stub-print{width:100%;font-size:11.5px;font-weight:650;font-stretch:72%;letter-spacing:.08em;text-transform:uppercase;color:rgba(20,32,51,.66)}"
+    },
+    {
+      "name": "Timetable",
+      "kind": "card",
+      "refersTo": "timetable-header",
+      "description": "Signature table on a sheet: double-ruled header, zebra rows, stop circles.",
+      "html": "<div class=\"ds-sheet\"><table class=\"ds-tt\"><thead><tr><th>Stop</th><th>Station (role)</th><th>Arrives<span class=\"ds-dagger\">†</span></th><th>Via</th></tr></thead><tbody><tr><td><span class=\"ds-stop\">1</span></td><td class=\"ds-station\">Junior Backend Developer</td><td class=\"ds-arr\">+4 mo</td><td><span class=\"ds-via\">SQL</span> <span class=\"ds-via\">REST APIs</span></td></tr><tr><td><span class=\"ds-stop\">2</span></td><td class=\"ds-station\">Backend Engineer</td><td class=\"ds-arr\">+10 mo</td><td><span class=\"ds-via\">Docker</span></td></tr></tbody></table></div>",
+      "css": ".ds-sheet{font-family:var(--font);background:var(--sheet);border:1px solid var(--rule);border-radius:10px;box-shadow:0 1px 2px rgba(22,44,102,.06),0 8px 24px -12px rgba(22,44,102,.18);overflow:hidden}.ds-tt{width:100%;border-collapse:collapse;font-size:14.5px;color:var(--ink)}.ds-tt th{text-align:left;font-size:11.5px;font-weight:700;font-stretch:78%;letter-spacing:.1em;text-transform:uppercase;color:var(--rail-deep);padding:10px 14px;border-bottom:4px double var(--rail);background:#eef2fb}.ds-tt td{padding:12px 14px;border-bottom:1px solid var(--rule);vertical-align:top}.ds-tt tbody tr:nth-child(even) td{background:var(--sheet-alt)}.ds-tt tbody tr:last-child td{border-bottom:0}.ds-stop{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;border:2px solid var(--rail);color:var(--rail-deep);font-size:12.5px;font-weight:750;background:#fff}.ds-station{font-weight:700;font-stretch:84%;font-size:16px}.ds-arr{font-weight:700;font-size:16px;font-stretch:78%;font-variant-numeric:tabular-nums}.ds-via{display:inline-flex;font-size:12.5px;font-weight:600;padding:2px 8px;border-radius:3px;border:1px solid var(--rule-strong);background:#fff}.ds-dagger{color:var(--ink-3)}"
+    },
+    {
+      "name": "Mini-Ticket Wallet",
+      "kind": "chip",
+      "refersTo": "mini-ticket-held",
+      "description": "Route skills as held, learned or still-to-collect mini tickets.",
+      "html": "<div class=\"ds-wallet\"><span class=\"ds-mini ds-learned\"><i></i>TypeScript</span><span class=\"ds-mini ds-held\"><i></i>React</span><span class=\"ds-mini\"><i></i>Docker</span></div>",
+      "css": ".ds-wallet{font-family:var(--font);display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:8px}.ds-mini{display:flex;align-items:center;gap:8px;min-height:40px;padding:8px 12px;border-radius:5px;font-size:13.5px;font-weight:650;font-stretch:88%;border:1.5px dashed var(--rule-strong);color:var(--ink-2)}.ds-mini i{width:9px;height:9px;border-radius:50%;border:1.5px solid currentColor}.ds-held{border:1.5px solid #1a3274;background:var(--rail);color:#fff}.ds-learned{border:1.5px solid #8fbf9f;background:var(--stock-mint);color:#10422b}.ds-held i,.ds-learned i{background:currentColor}"
+    },
+    {
+      "name": "Route Line",
+      "kind": "custom",
+      "refersTo": "sheet",
+      "description": "Rail line diagram: held station, interchange, terminus board.",
+      "html": "<ol class=\"ds-route\"><li><span class=\"ds-stn\"></span><b>Your skills</b></li><li><span class=\"ds-stn ds-int\"></span><b>Docker</b></li><li><span class=\"ds-stn ds-term\"></span><b class=\"ds-board\">Backend Engineer</b></li></ol>",
+      "css": ".ds-route{font-family:var(--font);list-style:none;margin:0;padding:8px 0;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;color:var(--ink)}.ds-route li{position:relative;padding-right:10px}.ds-route li:not(:last-child)::after{content:\"\";position:absolute;left:11px;right:0;top:8px;height:6px;background:var(--rail)}.ds-stn{position:relative;z-index:1;display:block;width:22px;height:22px;margin-bottom:12px;border-radius:50%;background:var(--rail);border:4px solid var(--sheet);box-shadow:0 0 0 2px var(--rail)}.ds-int{background:#fff;border:5px solid var(--rail);box-shadow:0 0 0 3px var(--sheet),0 0 0 5px var(--rail)}.ds-term{border-radius:4px;background:var(--rail-deep);box-shadow:0 0 0 2px var(--rail-deep)}.ds-route b{font-size:15px;font-weight:720;font-stretch:82%}.ds-board{display:inline-block;background:var(--stock-salmon);border-radius:5px;padding:8px 12px;font-size:16px!important;font-weight:780!important;font-stretch:78%!important}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Platform Timetable",
+    "overview": "A career plan printed the way Indian Railways prints a timetable and issues an Edmondson card ticket. The page is a mint-tinted platform; on it sit near-white timetable sheets ruled in fine blue hairlines, and on those sit card-stock ticket stubs in salmon, mint and sky. A rail-blue bar runs across the top. Everything the visitor reads is either a sheet (information laid out in columns) or a ticket (something they hold, or will hold once learned).\n\nThe system is an operating tool, not a showcase: dense, tabular, legible at arm's length. One family, Archivo, does all the work, and its width axis carries the hierarchy: condensed widths for heads, station names and figures; normal width for prose. Colour is strictly role-bound. Rail blue is structure and action, card stock is possession, and the three signal colours carry state and nothing else.\n\nThe second load-bearing idea is provenance. Every figure is visibly either measured (counted from real postings: solid ink, solid MEASURED mark) or an AI estimate (italic, dashed AI ESTIMATE mark, a dagger †, dashed bars). The two never look alike.",
+    "keyCharacteristics": [
+      "Mint platform ground, near-white sheets, blue hairline rules, rail-blue shell.",
+      "Archivo Variable only; the `wdth` axis (72-88%) sets heads, labels and figures; tabular lining numerals for every number.",
+      "Ticket stubs with perforation notches and a conductor's punch hole cut by masks, not drawn.",
+      "Timetable tables with a double-ruled header that collapse to stacked entries on phones.",
+      "Measured vs estimate is a visual grammar: solid vs dashed, roman vs italic, plain vs †.",
+      "Soft, cool, ambient shadows; no hard offsets, no gradients on surfaces."
+    ],
+    "rules": [
+      {
+        "name": "The Signal-Lamp Rule",
+        "body": "Green, amber and red mean state (held, difficulty, trend, impact, error, warning). They never decorate, never fill a section and never brand.",
+        "section": "colors"
+      },
+      {
+        "name": "The Card-Stock Rule",
+        "body": "Salmon, mint and sky belong to tickets and the destination: things the visitor holds or is travelling to. Stubs take them in order 1-2-3.",
+        "section": "colors"
+      },
+      {
+        "name": "The Width-Not-Weight Rule",
+        "body": "Hierarchy comes from the width axis and size first; weights stay in the 650-780 band for heads. Never bring in a second display family.",
+        "section": "typography"
+      },
+      {
+        "name": "The Italic-Is-Estimate Rule",
+        "body": "Italic body text appears only on AI-estimated content (stub reasons, upside column, fading reasons, estimate figures), always closed with a dagger †. Measured content is never italic.",
+        "section": "typography"
+      },
+      {
+        "name": "The Paper-On-Platform Rule",
+        "body": "Only sheets, stubs, the primary button and popovers cast shadows. Rows, chips, marks and mini tickets are flat and separated by hairlines or dashes.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** set every number in tabular lining figures at a condensed width (`wdth` 80).",
+      "**Do** mark every AI-derived figure with a dagger † and italic text, and every AI section with the dashed AI ESTIMATE mark; reserve the solid MEASURED mark and solid bars for counts from real postings.",
+      "**Do** put information on sheets (10px radius, sheet fill, blue hairline border, sheet shadow) and lay repeated records out in timetable columns that stack on phones.",
+      "**Do** use dashed lines for perforations, unheld items and estimates; solid hairlines for structure.",
+      "**Do** give primary controls a 44px target and a visible rail-blue focus outline.",
+      "**Do** keep the print stylesheet working: stubs print in their card stock, chrome drops out."
+    ],
+    "donts": [
+      "**Don't** use signal green, amber or red for anything but state.",
+      "**Don't** use card stock colours on chrome, buttons or notices.",
+      "**Don't** add a second typeface; reach for the width axis instead.",
+      "**Don't** set measured content in italic or give estimates a solid mark or solid bar.",
+      "**Don't** use hard offset shadows, black shadows or gradient-filled surfaces; depth is soft and rail-tinted.",
+      "**Don't** draw the stub notches or punch hole as overlaid shapes; they are mask cut-outs so the ground shows through."
+    ]
+  }
+}
