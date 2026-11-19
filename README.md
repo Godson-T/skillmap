@@ -22,7 +22,7 @@ cp .env.example .env      # then set GROQ_API_KEY
 npm run dev               # http://localhost:5173 (the API runs inside the Vite dev server)
 ```
 
-Requires Node 20+.
+Requires Node 22.12+ (Vite 8 / Vitest 5).
 
 ## Scripts
 
