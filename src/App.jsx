@@ -1,41 +1,15 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import {
   Network, TrendingUp, TrendingDown, Minus, Layers, Briefcase,
   GraduationCap, Zap, AlertTriangle, Clock, DollarSign,
-  CheckCircle, Loader2, Database, Play,
+  CheckCircle, Loader2, Play, Info,
   BarChart2, BookOpen
 } from 'lucide-react';
-
-/* ─── SYSTEM PROMPT ──────────────────────────────────────────────────────────── */
-const SYSTEM_PROMPT = `You are a senior career analyst with deep expertise in 2024-2026 job market trends.
-Analyze the user's skill profile and return ONLY a valid JSON object — no markdown, no commentary.
-
-JSON schema (follow exactly):
-{
-  "risingSkills":   [{ "skill": string, "demandScore": number (60-100), "trend": "rising"|"stable"|"declining" }],
-  "knowledgeGraph": {
-    "nodes": [{ "id": string, "label": string, "type": "current"|"bridge"|"target", "level": number (1-3) }],
-    "edges": [{ "from": string, "to": string, "label": string }]
-  },
-  "careerPaths": [{
-    "pathName": string,
-    "steps": [{ "role": string, "timeMonths": number, "skillsNeeded": [string], "roi": string }],
-    "totalTime": string,
-    "difficulty": "Easy"|"Medium"|"Hard"
-  }],
-  "dyingSkills":    [{ "skill": string, "reason": string }],
-  "topMicroSkills": [{ "skill": string, "learnTime": string, "impact": "High"|"Medium"|"Low" }]
-}
-
-Rules: 5-6 risingSkills · 2-3 dyingSkills · 6-8 topMicroSkills · 2-3 careerPaths · 7-10 graph nodes.`;
-
+import { LIMITS, LOCATIONS, SUGGESTED_SKILLS, TARGET_ROLES } from '../shared/options.js';
+import { computeSkillGap } from '../shared/skills.js';
+import { initialLayout, stepLayout, LAYOUT_TICKS } from './lib/graphLayout.js';
 
 /* ─── HELPERS ────────────────────────────────────────────────────────────────── */
-const safeParseJSON = (text) => {
-  let t = text.trim().replace(/^```(json)?/i, '').replace(/```$/i, '').trim();
-  return JSON.parse(t);
-};
-
 const DIFFICULTY = {
   Easy: { color: '#10B981', bg: '#ECFDF5', ring: 'rgba(16,185,129,0.25)' },
   Medium: { color: '#D97706', bg: '#FFF7ED', ring: 'rgba(217,119,6,0.25)' },
@@ -59,47 +33,20 @@ const KnowledgeGraph = ({ data }) => {
     if (!ref.current || !data?.nodes?.length) return;
     const canvas = ref.current;
     const ctx = canvas.getContext('2d');
+    if (!ctx) return;
     let raf;
 
     const W = canvas.width, H = canvas.height;
     const NODE_COLOR = { current: '#EA580C', bridge: '#D97706', target: '#10B981' };
 
-    const nodes = data.nodes.map(n => ({
-      ...n,
-      x: 60 + (n.level - 1) * ((W - 120) / 2) + (Math.random() - 0.5) * 60,
-      y: 40 + Math.random() * (H - 80),
-      vx: 0, vy: 0,
-    }));
-
-    const edges = data.edges
+    // Deterministic: positions are seeded from the node ids, and the force
+    // simulation runs a fixed number of ticks, so a report always settles
+    // into the same layout.
+    const nodes = initialLayout(data.nodes, W, H);
+    const edges = (data.edges || [])
       .map(e => ({ ...e, s: nodes.find(n => n.id === e.from), t: nodes.find(n => n.id === e.to) }))
       .filter(e => e.s && e.t);
-
-    const tick = () => {
-      // repulsion
-      nodes.forEach(a => {
-        let fx = (W / 2 - a.x) * 0.008, fy = (H / 2 - a.y) * 0.008;
-        nodes.forEach(b => {
-          if (a === b) return;
-          const dx = a.x - b.x, dy = a.y - b.y, d2 = dx * dx + dy * dy || 1;
-          const f = 5000 / d2, d = Math.sqrt(d2);
-          fx += f * dx / d; fy += f * dy / d;
-        });
-        a.fx = fx; a.fy = fy;
-      });
-      // spring attraction
-      edges.forEach(({ s, t }) => {
-        const dx = t.x - s.x, dy = t.y - s.y, d = Math.sqrt(dx * dx + dy * dy) || 1;
-        const f = (d - 140) * 0.38, fx = f * dx / d, fy = f * dy / d;
-        s.fx += fx; s.fy += fy; t.fx -= fx; t.fy -= fy
-      });
-      nodes.forEach(n => {
-        n.vx = (n.vx + n.fx * 0.1) * 0.75;
-        n.vy = (n.vy + n.fy * 0.1) * 0.75;
-        n.x = Math.max(70, Math.min(W - 70, n.x + n.vx));
-        n.y = Math.max(35, Math.min(H - 35, n.y + n.vy));
-      });
-    };
+    const tick = () => stepLayout(nodes, edges, W, H);
 
     const draw = () => {
       ctx.clearRect(0, 0, W, H);
@@ -147,8 +94,18 @@ const KnowledgeGraph = ({ data }) => {
       });
     };
 
-    const loop = () => { tick(); draw(); raf = requestAnimationFrame(loop); };
-    loop();
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    let ticks = 0;
+    if (reduceMotion) {
+      while (ticks++ < LAYOUT_TICKS) tick();
+      draw();
+    } else {
+      const loop = () => {
+        tick(); draw();
+        if (++ticks < LAYOUT_TICKS) raf = requestAnimationFrame(loop);
+      };
+      loop();
+    }
     return () => cancelAnimationFrame(raf);
   }, [data]);
 
@@ -179,9 +136,9 @@ const Loader = () => (
   <div style={{ textAlign: 'center', padding: '72px 0' }}>
     <div style={{ width: 52, height: 52, borderRadius: '50%', border: '3px solid #F5D9B6', borderTopColor: '#EA580C', margin: '0 auto 24px', animation: 'spin 0.75s linear infinite' }} />
     <p style={{ fontSize: 18, fontWeight: 700, color: '#1C1917', marginBottom: 8 }}>Analyzing your career profile</p>
-    <p style={{ fontSize: 13, color: '#78716C', marginBottom: 24 }}>Mapping skill topology and computing career distances…</p>
+    <p style={{ fontSize: 13, color: '#78716C', marginBottom: 24 }}>Mapping how your skills connect and sketching your next steps…</p>
     <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-      {['Embedding skills', 'Querying market data', 'Building roadmap'].map((s, i) => (
+      {['Reading your skills', 'Finding bridge skills', 'Building your roadmap'].map((s, i) => (
         <span key={s} style={{ background: '#FFF1E6', border: '1px solid #FDBA74', color: '#9A3412', borderRadius: 8, padding: '4px 12px', fontSize: 12, animation: `pulse 1.8s ease-in-out ${i * 0.3}s infinite` }}>{s}</span>
       ))}
     </div>
@@ -196,49 +153,12 @@ const Label = ({ children, hint }) => (
   </div>
 );
 
-/* ─── SUGGESTED SKILLS ──────────────────────────────────────────────────────── */
-const SUGGESTED_SKILLS = [
-  // Core Web
-  'JavaScript', 'TypeScript', 'React', 'Next.js', 'Vue.js', 'Angular', 'Svelte',
-  'HTML5', 'CSS3', 'Tailwind CSS', 'Framer Motion', 'Three.js', 'WebGL',
-  // Backend & APIs
-  'Node.js', 'Express.js', 'NestJS', 'Bun', 'Deno',
-  'Python', 'FastAPI', 'Django', 'Flask',
-  'Java', 'Spring Boot', 'Go', 'Rust', 'PHP', 'Laravel', 'C#', '.NET', 'C++',
-  'GraphQL', 'tRPC', 'REST APIs', 'gRPC', 'WebSockets',
-  // AI / ML
-  'Machine Learning', 'Deep Learning', 'LangChain', 'LlamaIndex',
-  'Prompt Engineering', 'RAG', 'Fine-tuning LLMs', 'Hugging Face',
-  'TensorFlow', 'PyTorch', 'Scikit-learn', 'OpenAI API', 'Ollama', 'MLflow',
-  // Data
-  'SQL', 'PostgreSQL', 'MongoDB', 'Redis', 'MySQL', 'SQLite', 'Supabase',
-  'Pandas', 'NumPy', 'Apache Spark', 'dbt', 'Airflow', 'Kafka',
-  // DevOps & Cloud
-  'Docker', 'Kubernetes', 'AWS', 'GCP', 'Azure', 'Vercel', 'Terraform', 'Ansible',
-  'GitHub Actions', 'CI/CD', 'Linux', 'Nginx', 'Monitoring & Observability',
-  // Mobile
-  'React Native', 'Flutter', 'Swift', 'SwiftUI', 'Kotlin', 'Jetpack Compose', 'Expo',
-  // Tools & Concepts
-  'Git', 'System Design', 'Microservices', 'DevOps', 'OAuth / JWT', 'Testing (Jest / Vitest)',
-];
-
-/* ─── TARGET ROLES ───────────────────────────────────────────────────────────── */
-const TARGET_ROLES = [
-  'AI Engineer', 'Full Stack Developer', 'Backend Engineer', 'Frontend Engineer',
-  'Data Scientist', 'Machine Learning Engineer', 'DevOps Engineer', 'Cloud Architect',
-  'Mobile Developer', 'iOS Developer', 'Android Developer', 'React Native Developer',
-  'Data Engineer', 'Platform Engineer', 'Site Reliability Engineer (SRE)',
-  'Solutions Architect', 'Tech Lead', 'Engineering Manager', 'Software Architect',
-  'Cybersecurity Engineer', 'Blockchain Developer', 'Game Developer',
-  'Product Engineer', 'AI Research Scientist', 'NLP Engineer', 'Web3 Developer',
-  'Computer Vision Engineer', 'Robotics Engineer', 'Fintech Engineer',
-];
-
 /* ─── APP ────────────────────────────────────────────────────────────────────── */
 export default function App() {
   const [form, setForm] = useState({ skills: '', goal: '', location: 'US' });
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState(null);
+  const [meta, setMeta] = useState(null);
   const [error, setError] = useState('');
   const [tab, setTab] = useState(0);
   const [showSkillDrop, setShowSkillDrop] = useState(false);
@@ -246,22 +166,18 @@ export default function App() {
   const [showRoleDrop, setShowRoleDrop] = useState(false);
   const resultsRef = useRef(null);
 
-  // Skill Gap % — how many career-path skills the user already has
-  const skillGap = useMemo(() => {
-    if (!data || !form.skills) return null;
-    const mine = form.skills.toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
-    const needed = new Set();
-    data.careerPaths?.forEach(p => p.steps?.forEach(s => s.skillsNeeded?.forEach(sk => needed.add(sk.toLowerCase().split(' ')[0]))));
-    if (!needed.size) return null;
-    const matched = [...needed].filter(sk => mine.some(m => m.includes(sk) || sk.includes(m)));
-    return Math.round((matched.length / needed.size) * 100);
-  }, [data, form.skills]);
+  // Skill readiness — share of the career-path skills the user already has,
+  // matched on a normalized taxonomy (aliases like "JS" -> "JavaScript").
+  const skillGap = useMemo(
+    () => (data && form.skills ? computeSkillGap(form.skills, data.careerPaths) : null),
+    [data, form.skills],
+  );
 
   useEffect(() => { if (data) resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [data]);
 
-  const reset = () => { setData(null); setError(''); setTab(0); };
+  const reset = () => { setData(null); setMeta(null); setError(''); setTab(0); };
 
-  /* Live API call — proxied through Vite dev server (key is server-side only) */
+  /* API call — the server validates input, calls the model and validates the report */
   const analyze = async (e) => {
     e.preventDefault(); reset(); setLoading(true);
     try {
@@ -270,17 +186,15 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ skills: form.skills, goal: form.goal, location: form.location }),
       });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error?.message || err?.error || `HTTP ${res.status}`);
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.report) {
+        const issues = json?.error?.issues?.map(i => i.message).join(' · ');
+        throw new Error([json?.error?.message || `Something went wrong (HTTP ${res.status}).`, issues].filter(Boolean).join(' '));
       }
-      const json = await res.json();
-      const text = json.choices?.[0]?.message?.content;
-      if (!text) throw new Error('Empty response. Please try again.');
-      setData(safeParseJSON(text));
+      setData(json.report);
+      setMeta(json.meta ?? null);
     } catch (err) {
-      setError(err.message || 'Unknown error');
+      setError(err instanceof TypeError ? 'We couldn\'t reach SkillMap. Check your connection and try again.' : err.message);
     } finally {
       setLoading(false);
     }
@@ -292,8 +206,13 @@ export default function App() {
   const getCurrentWord = (val) => { const p = val.split(','); return p[p.length - 1].trim(); };
   const handleSkillChange = (e) => {
     const val = e.target.value;
-    f('skills', val);
-    const word = getCurrentWord(val);
+    // The input only shows the in-progress word; replace just that word so
+    // previously added skills are kept.
+    const parts = form.skills.split(',');
+    parts[parts.length - 1] = val;
+    const next = parts.map((p, i) => (i < parts.length - 1 ? p.trim() : p.trimStart())).join(', ');
+    f('skills', next);
+    const word = getCurrentWord(next);
     setSkillQuery(word);
     setShowSkillDrop(word.length >= 1);
   };
@@ -305,7 +224,9 @@ export default function App() {
     setShowSkillDrop(false);
   };
   const removeSkill = (sk) => {
-    f('skills', form.skills.split(',').map(s => s.trim()).filter(s => s.toLowerCase() !== sk.toLowerCase()).join(', '));
+    const rest = form.skills.split(',').map(s => s.trim()).filter(s => s && s.toLowerCase() !== sk.toLowerCase());
+    f('skills', rest.length ? rest.join(', ') + ', ' : '');
+    setSkillQuery('');
   };
 
   // Derived
@@ -356,6 +277,8 @@ export default function App() {
                   placeholder="Type to search — e.g. React, Python, Docker..."
                   value={skillQuery}
                   onChange={handleSkillChange}
+                  maxLength={LIMITS.maxSkillLength}
+                  aria-label="Current skills"
                   onFocus={() => { const w = getCurrentWord(form.skills); setSkillQuery(w); setShowSkillDrop(w.length >= 1); }}
                   onBlur={() => setTimeout(() => setShowSkillDrop(false), 160)}
                   autoComplete="off"
@@ -403,6 +326,8 @@ export default function App() {
                     placeholder="Type a role — e.g. AI Engineer..."
                     value={form.goal}
                     onChange={e => f('goal', e.target.value)}
+                    maxLength={LIMITS.maxCustomGoalLength}
+                    aria-label="Target role"
                     onFocus={() => setShowRoleDrop(true)}
                     onBlur={() => setTimeout(() => setShowRoleDrop(false), 160)}
                     autoComplete="off"
@@ -428,11 +353,7 @@ export default function App() {
                 <Label hint="Affects salary ranges & market context">Location</Label>
                 <select className="input-field" value={form.location} onChange={e => f('location', e.target.value)}
                   style={{ cursor: 'pointer' }}>
-                  <option value="US">🇺🇸 United States</option>
-                  <option value="India">🇮🇳 India</option>
-                  <option value="EU">🇪🇺 Europe (EU)</option>
-                  <option value="UK">🇬🇧 United Kingdom</option>
-                  <option value="Remote">🌏 Remote / Global</option>
+                  {LOCATIONS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
                 </select>
               </div>
             </div>
@@ -454,7 +375,7 @@ export default function App() {
             <div style={{ flex: 1 }}>
               <p style={{ fontSize: 14, fontWeight: 600, color: '#F87171', marginBottom: 4 }}>Analysis failed</p>
               <p style={{ fontSize: 13, color: '#94A3B8', lineHeight: 1.6 }}>{error}</p>
-              <p style={{ fontSize: 12, color: '#475569', marginTop: 6 }}>Check your API key in the server, or try again.</p>
+              <p style={{ fontSize: 12, color: '#475569', marginTop: 6 }}>Your inputs are still here — adjust them if needed and try again.</p>
             </div>
           </div>
         )}
@@ -468,16 +389,27 @@ export default function App() {
 
             {/* Success strip + Skill Gap Meter */}
             <div className="fade-up" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 18px', background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: 12, fontSize: 13, color: '#047857', fontWeight: 500, flexWrap: 'wrap' }}>
-              <CheckCircle size={16} /> Analysis complete — here's your personalized career intelligence report
+              <CheckCircle size={16} /> Analysis complete — here&apos;s your personalized career roadmap
               {skillGap !== null && (
-                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div
+                  title={`You already have ${skillGap.matched.length} of ${skillGap.total} skills these paths call for.${skillGap.missing.length ? ` Still to learn: ${skillGap.missing.slice(0, 8).join(', ')}${skillGap.missing.length > 8 ? '…' : ''}` : ''}`}
+                  style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ fontSize: 12, color: '#57534E' }}>Skill Readiness:</span>
                   <div style={{ position: 'relative', width: 100, height: 8, background: '#E7E0D8', borderRadius: 99, overflow: 'hidden' }}>
-                    <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${skillGap}%`, background: skillGap > 65 ? '#10B981' : skillGap > 35 ? '#D97706' : '#EF4444', borderRadius: 99, transition: 'width 1s ease' }} />
+                    <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${skillGap.percent}%`, background: skillGap.percent > 65 ? '#10B981' : skillGap.percent > 35 ? '#D97706' : '#EF4444', borderRadius: 99, transition: 'width 1s ease' }} />
                   </div>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: skillGap > 65 ? '#10B981' : skillGap > 35 ? '#D97706' : '#EF4444' }}>{skillGap}%</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: skillGap.percent > 65 ? '#10B981' : skillGap.percent > 35 ? '#D97706' : '#EF4444' }}>{skillGap.percent}%</span>
                 </div>
               )}
+            </div>
+
+            {/* AI-estimate notice: nothing below is measured market data */}
+            <div className="fade-up" role="note" style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '12px 18px', background: '#FFFBF5', border: '1px solid #FED7AA', borderRadius: 12, fontSize: 12.5, color: '#57534E', lineHeight: 1.6 }}>
+              <Info size={15} color="#D97706" style={{ flexShrink: 0, marginTop: 2 }} />
+              <span>
+                <strong style={{ color: '#9A3412' }}>AI estimate.</strong>{' '}
+                {meta?.disclaimer || 'Generated by a language model from your inputs, not from live job-market data. Use it as a starting point, not a forecast.'}
+              </span>
             </div>
 
             {/* 1 · KNOWLEDGE GRAPH */}
@@ -490,7 +422,7 @@ export default function App() {
                   <h2 style={{ fontSize: 17, fontWeight: 700, color: '#1C1917', margin: 0 }}>Skill Topology Map</h2>
                 </div>
                 <p style={{ fontSize: 13, color: '#78716C', lineHeight: 1.65 }}>
-                  A physics-simulated graph of how your skills connect to your target role through bridge technologies. Nodes settle via force-direction — watch them find their equilibrium.
+                  A physics-simulated graph of how your skills connect to your target role through bridge technologies. Nodes settle into place via force-direction.
                 </p>
               </div>
               <KnowledgeGraph data={data.knowledgeGraph} />
@@ -507,7 +439,7 @@ export default function App() {
                   </div>
                   <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1C1917', margin: 0 }}>High-Demand Skills</h3>
                 </div>
-                <p style={{ fontSize: 12, color: '#78716C', marginBottom: 22, lineHeight: 1.6 }}>Skills with growing job posting volume through 2025–2026.</p>
+                <p style={{ fontSize: 12, color: '#78716C', marginBottom: 22, lineHeight: 1.6 }}>AI-estimated relative demand (0–100) — a directional signal, not measured job-posting counts.</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 17 }}>
                   {data.risingSkills.map((s, i) => (
                     <div key={i}>
@@ -515,7 +447,7 @@ export default function App() {
                         <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 500, color: '#292524' }}>
                           <TrendIcon trend={s.trend} /> {s.skill}
                         </span>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: '#EA580C' }}>{s.demandScore}</span>
+                        <span title="AI-estimated relative demand score" style={{ fontSize: 12, fontWeight: 600, color: '#EA580C' }}>{s.demandScore}<span style={{ fontSize: 10, fontWeight: 500, color: '#A8A29E' }}> est.</span></span>
                       </div>
                       <div className="bar-track">
                         <div className="bar-fill" style={{ width: `${s.demandScore}%` }} />
@@ -533,7 +465,7 @@ export default function App() {
                   </div>
                   <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1C1917', margin: 0 }}>Declining Skills</h3>
                 </div>
-                <p style={{ fontSize: 12, color: '#78716C', marginBottom: 22, lineHeight: 1.6 }}>Deprioritize these on your résumé — market demand is shrinking.</p>
+                <p style={{ fontSize: 12, color: '#78716C', marginBottom: 22, lineHeight: 1.6 }}>Skills the AI expects to matter less for your goal — consider deprioritizing them, and double-check against postings you care about.</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   {data.dyingSkills.map((s, i) => (
                     <div key={i} style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: 12, padding: '14px 16px' }}>
@@ -556,7 +488,7 @@ export default function App() {
                 <h2 style={{ fontSize: 17, fontWeight: 700, color: '#1C1917', margin: 0 }}>Career Trajectories</h2>
               </div>
               <p style={{ fontSize: 13, color: '#78716C', marginBottom: 24, lineHeight: 1.65 }}>
-                AI-mapped paths from your skills to high-value roles. Each step shows a realistic phase with skills to learn and earning potential.
+                AI-suggested paths from your skills to high-value roles. Timelines and upside are estimates — adjust them to the hours you can invest.
               </p>
 
               {/* Tabs */}
@@ -608,7 +540,7 @@ export default function App() {
                                 </h4>
                               </div>
                               <span style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#FFF7ED', border: '1px solid #FDBA74', borderRadius: 9, padding: '6px 14px', fontSize: 12, fontWeight: 600, color: '#D97706', whiteSpace: 'nowrap' }}>
-                                <Clock size={11} /> {step.timeMonths} months
+                                <Clock size={11} /> ~{step.timeMonths} months
                               </span>
                             </div>
 
@@ -628,7 +560,7 @@ export default function App() {
                             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: 10, padding: '10px 14px' }}>
                               <DollarSign size={14} color="#047857" style={{ flexShrink: 0, marginTop: 1 }} />
                               <p style={{ fontSize: 13, color: '#57534E', margin: 0, lineHeight: 1.65 }}>
-                                <strong style={{ color: '#047857', marginRight: 4 }}>ROI:</strong>{step.roi}
+                                <strong style={{ color: '#047857', marginRight: 4 }}>Upside (AI estimate):</strong>{step.roi}
                               </p>
                             </div>
                           </div>
@@ -648,7 +580,7 @@ export default function App() {
                 </div>
                 <h2 style={{ fontSize: 17, fontWeight: 700, color: '#1C1917', margin: 0 }}>High-Yield Micro-Skills</h2>
               </div>
-              <p style={{ fontSize: 13, color: '#78716C', marginBottom: 18, lineHeight: 1.6 }}>Quick wins sorted by career impact. Start with <strong style={{ color: '#047857' }}>High</strong> impact items to accelerate your transition.</p>
+              <p style={{ fontSize: 13, color: '#78716C', marginBottom: 18, lineHeight: 1.6 }}>Quick wins, ranked by the AI&apos;s estimate of career impact. Start with <strong style={{ color: '#047857' }}>High</strong> impact items to accelerate your transition.</p>
               <div className="r-grid-4">
                 {data.topMicroSkills.map((ms, i) => (
                   <div key={i} className="skill-chip">
@@ -665,11 +597,11 @@ export default function App() {
                     {/* Course links */}
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', borderTop: '1px solid #E7E0D8', paddingTop: 10 }}>
                       {[
-                        { label: 'Udemy', url: `https://www.udemy.com/courses/search/?q=${encodeURIComponent(ms.skill)}`, color: '#a435f0' },
-                        { label: 'Coursera', url: `https://www.coursera.org/search?query=${encodeURIComponent(ms.skill)}`, color: '#0056D2' },
-                        { label: 'Free', url: `https://www.freecodecamp.org/news/search/?query=${encodeURIComponent(ms.skill)}`, color: '#006400' },
+                        { label: 'Search Udemy', url: `https://www.udemy.com/courses/search/?q=${encodeURIComponent(ms.skill)}`, color: '#a435f0' },
+                        { label: 'Search Coursera', url: `https://www.coursera.org/search?query=${encodeURIComponent(ms.skill)}`, color: '#0056D2' },
+                        { label: 'Search freeCodeCamp', url: `https://www.freecodecamp.org/news/search/?query=${encodeURIComponent(ms.skill)}`, color: '#006400' },
                       ].map(c => (
-                        <a key={c.label} href={c.url} target="_blank" rel="noreferrer"
+                        <a key={c.label} href={c.url} target="_blank" rel="noopener noreferrer"
                           style={{ fontSize: 10, fontWeight: 600, color: c.color, background: `${c.color}14`, border: `1px solid ${c.color}30`, borderRadius: 5, padding: '2px 7px', textDecoration: 'none', whiteSpace: 'nowrap' }}>
                           {c.label} →
                         </a>
@@ -697,18 +629,18 @@ export default function App() {
                     <div style={{ width: 32, height: 32, borderRadius: 9, background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #FCA5A5' }}>
                       <YTIcon />
                     </div>
-                    <h2 style={{ fontSize: 17, fontWeight: 700, color: '#1C1917', margin: 0 }}>YouTube Learning Resources</h2>
+                    <h2 style={{ fontSize: 17, fontWeight: 700, color: '#1C1917', margin: 0 }}>Find Tutorials on YouTube</h2>
                   </div>
                   <p style={{ fontSize: 13, color: '#78716C', marginBottom: 20, lineHeight: 1.6 }}>
-                    Curated YouTube searches for every skill you need to learn. Click any card to start watching tutorials immediately.
+                    One-click YouTube searches for the skills on your roadmap. Results come straight from YouTube, so check the upload date and the creator before you dive in.
                   </p>
                   <div className="r-grid-3">
                     {skills.map((skill, i) => (
                       <a
                         key={i}
-                        href={`https://www.youtube.com/results?search_query=${encodeURIComponent(skill + ' tutorial 2024')}`}
+                        href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${skill} tutorial`)}`}
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noopener noreferrer"
                         style={{
                           display: 'flex', alignItems: 'center', gap: 12,
                           background: '#FFFFFF',
@@ -722,7 +654,7 @@ export default function App() {
                         <YTIcon />
                         <div>
                           <p style={{ fontSize: 13, fontWeight: 600, color: '#1C1917', margin: 0, marginBottom: 3 }}>{skill}</p>
-                          <p style={{ fontSize: 11, color: '#EF4444', margin: 0, fontWeight: 500 }}>Watch tutorials →</p>
+                          <p style={{ fontSize: 11, color: '#EF4444', margin: 0, fontWeight: 500 }}>Search tutorials →</p>
                         </div>
                       </a>
                     ))}
