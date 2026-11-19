@@ -31,18 +31,23 @@ research for you, not a spreadsheet.
 - Target role (optional): autocomplete over 29 preset roles, or a short custom role (≤60 chars, sanitized).
 - Location (US / India / EU / UK / Remote) — shapes salary and market context.
 
-## Outputs (sections)
-1. Skill Topology Map — force-directed canvas graph (current / bridge / target nodes).
-2. High-Demand Skills — rising skills with demand scores and trend direction.
-3. Declining Skills — skills to deprioritize, with brief qualitative reasons (AI estimate; no invented citations).
-4. Career Trajectories — 2–3 tabbed roadpaths, each with phased roles, timelines,
-   skills to acquire, and ROI.
-5. High-Yield Micro-Skills — quick wins sorted by impact, with Udemy / Coursera /
-   freeCodeCamp learning links.
-6. Find Tutorials on YouTube — one-click searches per required skill (not curated).
+## Outputs (sections, in reading order)
+1. Your next three tickets: the next skills to learn, measured picks from real postings
+   first, then AI suggestions; each can be punched when learned (saved in the browser).
+   Beside it, the ticket wallet: how many of the route's skills the user already holds.
+2. Your timetable: 2–3 tabbed career paths as timetables (stop, role, arrival, via
+   skills, upside†).
+3. What real job postings ask for: measured skill counts from live Greenhouse/Lever
+   postings, with sample size, scope and source.
+4. Where demand is heading: rising and fading skills (AI estimate).
+5. Route map: skill topology as a rail diagram (held / bridge / target).
+6. Quick wins: high-yield micro-skills with course searches, plus YouTube searches for
+   every route skill (not curated).
+
+† marks every AI estimate; measured figures carry their sample size and source.
 
 ## Technical context
-- React 18 + Vite 5 frontend, Tailwind CSS 3.4 styling.
+- React 18 + Vite 8 frontend; plain CSS design system in src/index.css ("Platform Timetable" world), Archivo variable font via Fontsource.
 - LLM: Groq (`openai/gpt-oss-120b` by default, override with `GROQ_MODEL`), JSON mode + zod-validated output.
 - One shared handler (`server/handler.js`) for Vercel and the Vite dev server; prompt in `server/prompt.js`.
 - API key kept server-side (Vercel `api/analyze.js` + Vite dev proxy).
