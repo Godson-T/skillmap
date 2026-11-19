@@ -47,7 +47,7 @@ research for you, not a spreadsheet.
 † marks every AI estimate; measured figures carry their sample size and source.
 
 ## Technical context
-- React 18 + Vite 8 frontend; plain CSS design system in src/index.css ("Platform Timetable" world), Archivo variable font via Fontsource.
+- React 18 + Vite 8 frontend; plain CSS design system in src/index.css ("Platform Timetable" world), Barlow, Barlow Semi Condensed and Barlow Condensed via Fontsource.
 - LLM: Groq (`openai/gpt-oss-120b` by default, override with `GROQ_MODEL`), JSON mode + zod-validated output.
 - One shared handler (`server/handler.js`) for Vercel and the Vite dev server; prompt in `server/prompt.js`.
 - API key kept server-side (Vercel `api/analyze.js` + Vite dev proxy).
