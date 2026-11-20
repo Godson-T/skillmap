@@ -29,3 +29,11 @@ dist-ssr
 .env.*.local
 
 .vercel
+playwright-report
+test-results
+
+# Impeccable working files
+.impeccable/review/
+.impeccable/questions/
+.impeccable/build/
+.impeccable/hook.cache.json
