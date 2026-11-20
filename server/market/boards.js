@@ -34,9 +34,40 @@ export const BOARDS = [
   { ats: 'lever', token: 'razorpay', company: 'Razorpay' },
 ];
 
-export const boardUrl = (b) => (b.ats === 'greenhouse'
-  ? `https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(b.token)}/jobs`
-  : `https://api.lever.co/v0/postings/${encodeURIComponent(b.token)}?mode=json`);
+const ATS = {
+  greenhouse: {
+    listUrl: (t) => `https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(t)}/jobs`,
+    postingUrl: (t, id) => `https://boards.greenhouse.io/${encodeURIComponent(t)}/jobs/${encodeURIComponent(String(id))}`,
+    postingHosts: ['boards.greenhouse.io', 'job-boards.greenhouse.io'],
+  },
+  lever: {
+    listUrl: (t) => `https://api.lever.co/v0/postings/${encodeURIComponent(t)}?mode=json`,
+    postingUrl: (t, id) => `https://jobs.lever.co/${encodeURIComponent(t)}/${encodeURIComponent(String(id))}`,
+    postingHosts: ['jobs.lever.co'],
+  },
+};
+
+const ats = (b) => {
+  const a = ATS[b.ats];
+  if (!a) throw new Error(`unknown ATS "${b.ats}" for board ${b.token}`);
+  return a;
+};
+
+export const boardUrl = (b) => ats(b).listUrl(b.token);
 
 export const greenhouseJobUrl = (b, id) =>
   `https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(b.token)}/jobs/${encodeURIComponent(String(id))}`;
+
+/**
+ * Link shown to users for a posting. Upstream URLs are used only when they are
+ * https on the ATS's own posting host; anything else falls back to the
+ * canonical ATS URL, so a spoofed or odd board reply cannot inject links.
+ */
+export function safePostingUrl(b, id, upstreamUrl) {
+  const a = ats(b);
+  try {
+    const u = new URL(upstreamUrl);
+    if (u.protocol === 'https:' && a.postingHosts.includes(u.hostname)) return u.href;
+  } catch { /* fall through */ }
+  return a.postingUrl(b.token, id);
+}

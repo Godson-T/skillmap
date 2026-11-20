@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => {
       headers,
       body: raw ?? '',
       bodyTooLarge: raw === null,
-      ip: clientIp(headers, req.socket),
+      ip: clientIp(headers, req.socket, env),
     }, deps)
     send(res, out)
   }

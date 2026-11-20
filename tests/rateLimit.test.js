@@ -22,10 +22,10 @@ describe('createRateLimiter (memory)', () => {
 
   it('does not let rate-limited clients consume the global cap', async () => {
     const rl = createRateLimiter({ RATE_LIMIT_PER_MINUTE: '1', DAILY_REQUEST_CAP: '2' });
-    await rl.check('abuser', T0);
-    for (let i = 0; i < 10; i++) await rl.check('abuser', T0);
-    expect((await rl.check('honest', T0)).ok).toBe(true);
-    expect(await rl.check('third', T0)).toMatchObject({ ok: false, code: 'GLOBAL_DAILY_CAP' });
+    await rl.check('203.0.113.1', T0);
+    for (let i = 0; i < 10; i++) await rl.check('203.0.113.1', T0);
+    expect((await rl.check('203.0.113.2', T0)).ok).toBe(true);
+    expect(await rl.check('203.0.113.3', T0)).toMatchObject({ ok: false, code: 'GLOBAL_DAILY_CAP' });
   });
 });
 
@@ -58,7 +58,7 @@ describe('createRateLimiter (upstash)', () => {
     const rl = createRateLimiter({ ...env, RATE_LIMIT_PER_MINUTE: '1' }, { fetchImpl: vi.fn(async () => jsonResponse(500, {})), logger });
     expect((await rl.check('a', T0)).ok).toBe(true);
     expect((await rl.check('a', T0)).ok).toBe(false);
-    expect(logger).toHaveBeenCalledWith('warn', 'ratelimit_backend_error', expect.objectContaining({ backend: 'upstash' }));
+    expect(logger).toHaveBeenCalledWith('error', 'ratelimit_degraded', expect.objectContaining({ backend: 'upstash' }));
   });
 });
 

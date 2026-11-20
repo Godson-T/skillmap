@@ -50,7 +50,8 @@ function endpoint(spec) {
       return { status, headers: { ...baseHeaders, ...(extra.retryAfter ? { 'Retry-After': String(extra.retryAfter) } : {}) }, body };
     };
     const fail = (err, extra = {}) => {
-      const e = err instanceof AppError ? err : new AppError('INTERNAL', { detail: String(err?.message || err) });
+      // Unknown errors log their type only: messages can embed input, headers or URLs.
+      const e = err instanceof AppError ? err : new AppError('INTERNAL', { detail: `unhandled ${err?.name || typeof err}` });
       return finish(e.status, errorBody(e, requestId), {
         ...extra,
         code: e.code,
@@ -128,9 +129,13 @@ export const handleMarket = endpoint({
 
     const result = await market.skillDemand(input, now());
     if (result.boards.ok === 0) throw new AppError('UPSTREAM_ERROR', { detail: 'all job boards failed' });
+    // Postings matched but none could be read: an upstream failure, not "no postings".
+    if (result.matched > 0 && result.sampleSize === 0) {
+      throw new AppError('UPSTREAM_ERROR', { detail: `all ${result.matched} posting detail fetches failed` });
+    }
     return {
       body: { market: result },
-      log: { sampleSize: result.sampleSize, scope: result.scope, boardsOk: result.boards.ok, cached: Boolean(result.cached) },
+      log: { sampleSize: result.sampleSize, scope: result.scope, boardsOk: result.boards.ok, detailsFailed: result.detailsFailed, degraded: result.degraded, cached: Boolean(result.cached) },
     };
   },
 });

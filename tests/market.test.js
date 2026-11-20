@@ -118,7 +118,7 @@ describe('createMarketService', () => {
     const svc = createMarketService({ fetchImpl, boards: BOARDS, logger });
     const r = await svc.skillDemand({ goal: 'Backend Engineer', location: 'Remote' }, 0);
     expect(r.boards).toEqual({ queried: 2, ok: 1 });
-    expect(logger).toHaveBeenCalledWith('warn', 'market_boards_failed', { boards: ['lever:globex'] });
+    expect(logger).toHaveBeenCalledWith('warn', 'market_boards_failed', { boards: [{ board: 'lever:globex', reason: expect.any(String) }] });
     const before = fetchImpl.mock.calls.length;
     const again = await svc.skillDemand({ goal: 'backend engineer', location: 'Remote' }, 1000);
     expect(again.cached).toBe(true);
@@ -129,6 +129,44 @@ describe('createMarketService', () => {
     const { fetchImpl, calls } = fakeBoards({ ghJobs: many(2, 'Remote', '<p>Go</p>') });
     await createMarketService({ fetchImpl, boards: BOARDS }).skillDemand({ goal: 'https://evil.example/x', location: 'Remote' }, 0);
     expect(calls.every(u => /^https:\/\/(boards-api\.greenhouse\.io|api\.lever\.co)\//.test(u))).toBe(true);
+  });
+
+  it('marks the result degraded and counts detailsFailed when a posting detail 404s', async () => {
+    const jobs = many(3, 'Remote', '<p>Go</p>');
+    const fetchImpl = vi.fn(async (url) => {
+      const u = new URL(url);
+      const m = u.pathname.match(/\/jobs\/(\d+)$/);
+      if (m) {
+        if (m[1] === String(jobs[0].id)) return jsonResponse(404, {}); // one detail fetch fails
+        const j = jobs.find(x => String(x.id) === m[1]);
+        return jsonResponse(200, { ...j, content: esc(j.html) });
+      }
+      return jsonResponse(200, { jobs: jobs.map(j => ({ id: j.id, title: j.title, location: j.location, absolute_url: j.absolute_url })) });
+    });
+    const r = await createMarketService({ fetchImpl, boards: BOARDS.slice(0, 1) }).skillDemand({ goal: 'Backend Engineer', location: 'Remote' }, 0);
+    expect(r.degraded).toBe(true);
+    expect(r.detailsFailed).toBe(1);
+    expect(r.sampleSize).toBe(2); // the failed posting is excluded from the skill tally
+  });
+
+  it('is not degraded and has no truncation when everything succeeds within budget', async () => {
+    const { fetchImpl } = fakeBoards({ ghJobs: many(3, 'Remote', '<p>Go</p>') });
+    const r = await createMarketService({ fetchImpl, boards: BOARDS.slice(0, 1) }).skillDemand({ goal: 'Backend Engineer', location: 'Remote' }, 0);
+    expect(r.degraded).toBe(false);
+    expect(r.detailsFailed).toBe(0);
+    expect(r.truncated).toBe(0);
+  });
+
+  it('never caches a total failure (every board down)', async () => {
+    const fetchImpl = vi.fn(async () => jsonResponse(500, {}));
+    const svc = createMarketService({ fetchImpl, boards: BOARDS });
+    const first = await svc.skillDemand({ goal: 'Backend Engineer', location: 'Remote' }, 0);
+    expect(first).toMatchObject({ boards: { queried: 2, ok: 0 }, sampleSize: 0, degraded: true });
+    // After the negative-cache window, a fresh attempt must hit the boards again, not a cached failure.
+    const before = fetchImpl.mock.calls.length;
+    const again = await svc.skillDemand({ goal: 'Backend Engineer', location: 'Remote' }, 6 * 60_000);
+    expect(again.cached).toBeUndefined();
+    expect(fetchImpl.mock.calls.length).toBeGreaterThan(before);
   });
 });
 
