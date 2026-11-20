@@ -27,12 +27,12 @@ test('form → results smoke', async ({ page }) => {
   await page.goto('/')
   await expect(page).toHaveTitle(/^SkillMap/)
 
-  const skills = page.getByLabel('Current skills')
+  const skills = page.getByRole('combobox', { name: /your skills/i })
   await skills.fill('Java')
   await page.getByRole('option', { name: 'JavaScript', exact: true }).dispatchEvent('mousedown')
   await skills.fill('React')
   await skills.press('Enter')
-  await page.getByLabel('Target role').fill('Full Stack Developer')
+  await page.getByRole('combobox', { name: /target role/i }).fill('Full Stack Developer')
   await page.getByLabel('Region').selectOption('India')
   await page.getByRole('button', { name: /Plan my route/ }).click()
 
