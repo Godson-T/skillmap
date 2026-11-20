@@ -3,14 +3,20 @@ import { LIMITS, LOCATION_VALUES, TARGET_ROLES } from '../shared/options.js';
 
 /* ─── Input ──────────────────────────────────────────────────────────────── */
 
-// Letters/digits in any script plus the punctuation real skill names use
-// (C++, C#, .NET, CI/CD, Node.js, "Testing (Jest / Vitest)").
-const SKILL_RE = /^[\p{L}\p{N} .+#/&()'_-]+$/u;
-const GOAL_RE = /^[\p{L}\p{N} .,+#/&()'_-]+$/u;
+// Letters, combining marks (Indic scripts, decomposed accents) and digits in any
+// script, plus the punctuation real skill names use (C++, C#, .NET, CI/CD, Node.js).
+const SKILL_RE = /^[\p{L}\p{M}\p{N} .+#/&()'_-]+$/u;
+const GOAL_RE = /^[\p{L}\p{M}\p{N} .,+#/&()'_-]+$/u;
 
-const skillItem = z.string().trim().min(1)
+/** NFC-normalize and collapse whitespace so equivalent spellings compare equal. */
+const canon = (s) => s.normalize('NFC').trim().replace(/ {2,}/g, ' '); // newlines/tabs stay, and the regex rejects them
+const wordCount = (s) => (s ? s.split(' ').length : 0);
+
+// Word caps keep free text from smuggling instructions into the prompt.
+const skillItem = z.string().transform(canon).pipe(z.string().min(1)
   .max(LIMITS.maxSkillLength, `Each skill must be ${LIMITS.maxSkillLength} characters or fewer`)
-  .regex(SKILL_RE, 'Skills may only contain letters, numbers, spaces and . + # / & ( ) \' - _');
+  .regex(SKILL_RE, 'Skills may only contain letters, numbers, spaces and . + # / & ( ) \' - _')
+  .refine(s => wordCount(s) <= LIMITS.maxSkillWords, `Each skill must be ${LIMITS.maxSkillWords} words or fewer`));
 
 const skillsField = z.union([
   z.string().max(LIMITS.maxSkillsChars, `Skills list must be ${LIMITS.maxSkillsChars} characters or fewer`)
@@ -19,25 +25,28 @@ const skillsField = z.union([
 ])
   .transform(list => {
     const seen = new Set();
-    return list.map(s => s.trim()).filter(s => s && !seen.has(s.toLowerCase()) && seen.add(s.toLowerCase()));
+    return list.map(canon).filter(s => s && !seen.has(s.toLowerCase()) && seen.add(s.toLowerCase()));
   })
   .pipe(z.array(skillItem)
     .min(1, 'Please add at least one skill')
     .max(LIMITS.maxSkills, `Please list ${LIMITS.maxSkills} skills or fewer`));
 
 const ROLE_LOOKUP = new Map(TARGET_ROLES.map(r => [r.toLowerCase(), r]));
+const LOCATION_LOOKUP = new Map(LOCATION_VALUES.map(v => [v.toLowerCase(), v]));
 
-const goalField = z.string().trim()
-  .max(LIMITS.maxCustomGoalLength, `Target role must be ${LIMITS.maxCustomGoalLength} characters or fewer`)
-  .refine(g => g === '' || GOAL_RE.test(g), 'Target role may only contain letters, numbers, spaces and basic punctuation')
-  .transform(g => ROLE_LOOKUP.get(g.toLowerCase()) ?? g.replace(/\s+/g, ' '))
+const goalField = z.string().transform(canon)
+  .pipe(z.string()
+    .max(LIMITS.maxCustomGoalLength, `Target role must be ${LIMITS.maxCustomGoalLength} characters or fewer`)
+    .refine(g => g === '' || GOAL_RE.test(g), 'Target role may only contain letters, numbers, spaces and basic punctuation')
+    .refine(g => wordCount(g) <= LIMITS.maxGoalWords, `Target role must be ${LIMITS.maxGoalWords} words or fewer`))
+  .transform(g => ROLE_LOOKUP.get(g.toLowerCase()) ?? g)
   .optional()
   .default('');
 
 export const AnalyzeInput = z.object({
   skills: skillsField,
   goal: z.preprocess(v => (v == null ? '' : v), goalField),
-  location: z.preprocess(v => (v == null || v === '' ? 'US' : v),
+  location: z.preprocess(v => (v == null || v === '' ? 'US' : typeof v === 'string' ? LOCATION_LOOKUP.get(v.trim().toLowerCase()) ?? v : v),
     z.enum(/** @type {[string, ...string[]]} */ (LOCATION_VALUES), {
       error: `Location must be one of: ${LOCATION_VALUES.join(', ')}`,
     })),
@@ -84,6 +93,19 @@ export function stripUnsourcedClaims(s, fallback) {
   return kept || fallback;
 }
 
+/**
+ * Array that drops items failing `item` instead of failing the whole report
+ * (one malformed edge should not cost a paid retry), then caps length and
+ * enforces a minimum on what survived.
+ */
+const lenientArray = (item, { min = 0, max }) => z.preprocess(
+  v => (Array.isArray(v) ? v : []),
+  z.array(z.unknown()).transform(list => list.flatMap(x => {
+    const r = item.safeParse(x);
+    return r.success ? [r.data] : [];
+  }).slice(0, max)),
+).pipe(z.array(z.any()).min(min));
+
 const node = z.object({
   id: text(60),
   label: text(60),
@@ -93,42 +115,48 @@ const node = z.object({
 const edge = z.object({ from: text(60), to: text(60), label: optText(40) });
 
 export const ReportSchema = z.object({
-  risingSkills: z.array(z.object({
+  risingSkills: lenientArray(z.object({
     skill: text(60),
-    demandScore: num(0, 100),
+    demandScore: num(0, 100).catch(50),
     trend: z.enum(['rising', 'stable', 'declining']).catch('stable'),
-  })).min(1).max(10),
+  }), { min: 1, max: 10 }),
 
   knowledgeGraph: z.object({
-    nodes: z.array(node).min(2).max(16),
-    edges: z.array(edge).max(40).default([]),
+    nodes: lenientArray(node, { min: 2, max: 16 }),
+    edges: lenientArray(edge, { max: 40 }),
   }).transform(g => {
     const nodes = [...new Map(g.nodes.map(n => [n.id, n])).values()];
     const ids = new Set(nodes.map(n => n.id));
-    const edges = g.edges.filter(e => ids.has(e.from) && ids.has(e.to) && e.from !== e.to);
+    const seen = new Set();
+    const edges = g.edges.filter(e => {
+      const k = `${e.from}\u0000${e.to}`;
+      if (!ids.has(e.from) || !ids.has(e.to) || e.from === e.to || seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
     return { nodes, edges };
-  }),
+  }).refine(g => g.nodes.length >= 2, 'knowledge graph needs at least 2 distinct nodes'),
 
-  careerPaths: z.array(z.object({
+  careerPaths: lenientArray(z.object({
     pathName: text(80),
-    steps: z.array(z.object({
+    steps: lenientArray(z.object({
       role: text(80),
-      timeMonths: num(1, 60),
-      skillsNeeded: z.array(text(60)).max(12).default([]),
+      timeMonths: num(1, 60).catch(6),
+      skillsNeeded: lenientArray(text(60), { max: 12 }),
       roi: text(300).transform(s => stripUnsourcedClaims(s, 'Opens the door to the next role on this path.')),
-    })).min(1).max(8),
+    }), { min: 1, max: 8 }),
     totalTime: text(40),
     difficulty: z.enum(['Easy', 'Medium', 'Hard']).catch('Medium'),
-  })).min(1).max(4),
+  }), { min: 1, max: 4 }),
 
-  dyingSkills: z.array(z.object({
+  dyingSkills: lenientArray(z.object({
     skill: text(60),
     reason: text(400).transform(s => stripUnsourcedClaims(s, 'Demand appears to be shifting toward newer alternatives.')),
-  })).min(1).max(6),
+  }), { min: 1, max: 6 }),
 
-  topMicroSkills: z.array(z.object({
+  topMicroSkills: lenientArray(z.object({
     skill: text(60),
     learnTime: text(40),
     impact: z.enum(['High', 'Medium', 'Low']).catch('Medium'),
-  })).min(1).max(10),
+  }), { min: 1, max: 10 }),
 });

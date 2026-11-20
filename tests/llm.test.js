@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AppError } from '../server/errors.js';
-import { DEFAULT_MODEL, GROQ_URL, generateReport, parseModelJSON } from '../server/llm.js';
+import { DEFAULT_MODEL, GROQ_URL, generateReport, llmConfig, parseModelJSON } from '../server/llm.js';
 import { SYSTEM_PROMPT } from '../server/prompt.js';
 import fixture from './fixtures/report.json';
 import { fetchSequence, groqOk, jsonResponse } from './helpers.js';
@@ -81,9 +81,10 @@ describe('generateReport', () => {
     [401, { error: { code: 'invalid_api_key' } }, 'SERVICE_UNAVAILABLE', 503],
     [404, { error: { code: 'model_not_found' } }, 'SERVICE_UNAVAILABLE', 503],
     [400, { error: { code: 'model_decommissioned' } }, 'SERVICE_UNAVAILABLE', 503],
-    [400, { error: { code: 'invalid_request_error' } }, 'UPSTREAM_ERROR', 502],
-    [500, {}, 'UPSTREAM_ERROR', 502],
-    [503, null, 'UPSTREAM_ERROR', 502],
+    [400, { error: { code: 'invalid_request_error' } }, 'INTERNAL', 500],
+    [413, { error: { code: 'request_too_large' } }, 'INTERNAL', 500],
+    [500, {}, 'UPSTREAM_BUSY', 503],
+    [503, null, 'UPSTREAM_BUSY', 503],
   ])('maps Groq %i to %s without retrying', async (status, body, code, httpStatus) => {
     const fetchImpl = fetchSequence(jsonResponse(status, body, { 'retry-after': '7' }), groqOk());
     const err = await generateReport({ input, env, fetchImpl }).catch(e => e);
@@ -103,5 +104,59 @@ describe('generateReport', () => {
   it('maps network failures to UPSTREAM_ERROR', async () => {
     const boom = async () => { throw new TypeError('fetch failed'); };
     await expect(generateReport({ input, env, fetchImpl: fetchSequence(boom) })).rejects.toMatchObject({ code: 'UPSTREAM_ERROR' });
+  });
+
+  it('shows the model its bad reply and the reason when retrying', async () => {
+    const fetchImpl = fetchSequence(groqOk('{"nodes": "nope"}'), groqOk());
+    await generateReport({ input, env, fetchImpl });
+    const msgs = JSON.parse(fetchImpl.mock.calls[1][1].body).messages;
+    expect(msgs.at(-2)).toEqual({ role: 'assistant', content: '{"nodes": "nope"}' });
+    expect(msgs.at(-1).content).toMatch(/schema/);
+  });
+
+  it('gives a truncated reply a larger token budget on retry', async () => {
+    const cut = jsonResponse(200, { choices: [{ finish_reason: 'length', message: { content: '{"a":' } }], usage: {} });
+    const fetchImpl = fetchSequence(cut, groqOk());
+    await generateReport({ input, env, fetchImpl });
+    const first = JSON.parse(fetchImpl.mock.calls[0][1].body).max_completion_tokens;
+    const second = JSON.parse(fetchImpl.mock.calls[1][1].body).max_completion_tokens;
+    expect(second).toBeGreaterThan(first);
+    expect(JSON.parse(fetchImpl.mock.calls[1][1].body).messages.at(-1).content).toMatch(/cut off/);
+  });
+
+  it('carries retry-after from a 429', async () => {
+    const err = await generateReport({ input, env, fetchImpl: fetchSequence(jsonResponse(429, {}, { 'retry-after': '7' })) }).catch(e => e);
+    expect(err).toMatchObject({ code: 'UPSTREAM_BUSY', retryAfter: 7 });
+  });
+
+  it('maps a 200 with a non-JSON body to UPSTREAM_ERROR', async () => {
+    const res = { ok: true, status: 200, headers: new Headers(), json: async () => { throw new SyntaxError('bad'); } };
+    await expect(generateReport({ input, env, fetchImpl: fetchSequence(res) })).rejects.toMatchObject({ code: 'UPSTREAM_ERROR' });
+  });
+
+  it('times out when the response body stalls (timer covers res.json)', async () => {
+    const stall = (_url, init) => Promise.resolve({
+      ok: true, status: 200, headers: new Headers(),
+      json: () => new Promise((_, reject) => init.signal.addEventListener('abort', () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' })))),
+    });
+    const err = await generateReport({ input, env: { ...env, LLM_TIMEOUT_MS: '1000' }, fetchImpl: fetchSequence(stall) }).catch(e => e);
+    expect(err).toMatchObject({ code: 'TIMEOUT', status: 504 });
+  });
+
+  it('does not start a retry once the overall deadline is spent', async () => {
+    let t = 0;
+    const now = () => t;
+    const slowBad = async () => { t += 49_500; return groqOk('not json'); };
+    const fetchImpl = fetchSequence(slowBad, groqOk());
+    const err = await generateReport({ input, env, fetchImpl, now }).catch(e => e);
+    expect(err).toMatchObject({ code: 'TIMEOUT' });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('llmConfig', () => {
+  it('clamps timeout and token budget into safe ranges', () => {
+    expect(llmConfig({ LLM_TIMEOUT_MS: '999999', LLM_MAX_TOKENS: '999999' })).toMatchObject({ timeoutMs: 30_000, maxTokens: 12_000 });
+    expect(llmConfig({ LLM_TIMEOUT_MS: '1', LLM_MAX_TOKENS: '1' })).toMatchObject({ timeoutMs: 1_000, maxTokens: 512 });
   });
 });

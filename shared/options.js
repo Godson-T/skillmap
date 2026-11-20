@@ -53,4 +53,6 @@ export const LIMITS = {
   maxSkillLength: 40,
   maxSkillsChars: 800,
   maxCustomGoalLength: 60,
+  maxSkillWords: 5,
+  maxGoalWords: 8,
 };
