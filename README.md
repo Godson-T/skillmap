@@ -55,14 +55,19 @@ into the browser. Full annotated list: [`.env.example`](.env.example).
 |---|---|---|
 | `GROQ_API_KEY` | **required** | Groq API key |
 | `GROQ_MODEL` | `openai/gpt-oss-120b` | Model ID. Defaults to a Groq *Production* model |
-| `LLM_TIMEOUT_MS` | `20000` | Per-attempt upstream timeout |
-| `LLM_MAX_TOKENS` | `6000` | Completion budget, including reasoning tokens |
+| `LLM_TIMEOUT_MS` | `20000` | Per-attempt upstream timeout, clamped to 1–30 s. Both attempts share a 50 s deadline |
+| `LLM_MAX_TOKENS` | `6000` | Completion budget, including reasoning tokens, clamped to 512–12000 |
 | `ALLOWED_ORIGINS` | *(empty)* | Extra cross-origin callers (same-origin is always allowed) |
+| `TRUST_PROXY` | *(empty)* | Read client IP and host from `X-Forwarded-*`. Automatic on Vercel; set only behind a proxy that overwrites those headers |
 | `UPSTASH_REDIS_REST_URL` / `_TOKEN` | *(empty)* | Shared rate-limit store. `KV_REST_API_URL` / `_TOKEN` are also accepted |
 | `RATE_LIMIT_PER_MINUTE` | `5` | Per client IP |
 | `RATE_LIMIT_PER_DAY` | `40` | Per client IP |
 | `DAILY_REQUEST_CAP` | `2000` | Global analyses per UTC day (budget guard) |
-| `RATE_LIMIT_SALT` | `skillmap` | Salt used to hash IPs into rate-limit keys |
+| `DEGRADED_DAILY_CAP` | `100` | Global cap while Redis is configured but unreachable (limits fall back to per-instance memory) |
+| `RATE_LIMIT_SALT` | `skillmap` | Salt used to hash IPs into rate-limit keys. **Set it in production**; an error is logged if it is missing |
+
+Malformed numeric values are reported in a `ratelimit_config` log line at startup and
+the default is used.
 | `MARKET_RATE_LIMIT_PER_MINUTE` | `10` | `/api/market`, per client IP (separate from the analysis budget) |
 | `MARKET_RATE_LIMIT_PER_DAY` | `200` | `/api/market`, per client IP |
 
@@ -147,9 +152,12 @@ descriptions.
 | 405 | `METHOD_NOT_ALLOWED` |
 | 413 | `PAYLOAD_TOO_LARGE` |
 | 429 | `RATE_LIMITED`, `DAILY_LIMIT` (with `Retry-After`) |
+| 500 | `INTERNAL` (includes Groq 4xx request errors, which a retry cannot fix) |
 | 502 | `BAD_OUTPUT`, `UPSTREAM_ERROR` |
-| 503 | `UPSTREAM_BUSY`, `SERVICE_UNAVAILABLE`, `GLOBAL_DAILY_CAP` |
+| 503 | `UPSTREAM_BUSY` (Groq 429/5xx, with `retryAfterSeconds` when known), `SERVICE_UNAVAILABLE`, `GLOBAL_DAILY_CAP` |
 | 504 | `TIMEOUT` |
+
+`retryable` in the error body tells the client whether trying again could help.
 
 Provider error bodies, the model's raw output and token usage are never returned to the
 client.
@@ -158,9 +166,14 @@ client.
 
 | Input | Limit |
 |---|---|
-| Skills | 1–25 items, ≤ 40 characters each, ≤ 800 characters total. Letters, numbers, spaces and `. + # / & ( ) ' - _` only |
-| `location` | One of `US`, `India`, `EU`, `UK`, `Remote` |
-| `goal` | One of the 29 preset roles, or a custom role ≤ 60 characters with the same character rules. Custom roles are kept on purpose, so users can type roles that are not in the list |
+| Skills | 1–25 items, ≤ 40 characters and ≤ 5 words each, ≤ 800 characters total. Letters (any script, including combining marks), numbers, spaces and `. + # / & ( ) ' - _` only. Text is NFC-normalized; newlines and tabs are rejected |
+| `location` | One of `US`, `India`, `EU`, `UK`, `Remote` (case-insensitive) |
+| `goal` | One of the 29 preset roles, or a custom role ≤ 60 characters and ≤ 8 words with the same character rules. Custom roles are kept on purpose, so users can type roles that are not in the list |
+
+Model output is validated leniently: a malformed item (one bad edge, an empty skill)
+is dropped rather than failing the whole report, over-long lists are truncated, and
+non-numeric scores get neutral defaults. A section with no valid items still fails
+validation and triggers the single retry.
 
 User text is sent to the model as JSON inside a delimited `<profile>` block. The prompt
 tells the model to treat that block as data, not instructions.
@@ -176,6 +189,17 @@ Each request produces one JSON line, `event: "analyze"`. It contains:
 - skills **count**, location enum and goal kind (`none`, `preset` or `custom`)
 
 It never contains the skills text, the goal text, the prompt, the IP or the key.
+`/api/market` logs `event: "market"` with sample size, scope, boards OK, failed
+detail fetches, `degraded` and `cached`.
+
+Events worth alerting on:
+
+| Event | Level | Meaning |
+|---|---|---|
+| `ratelimit_config` | error | Production without Redis, half-set Redis env, or missing salt (logged at startup) |
+| `ratelimit_degraded` | error | Redis unreachable; limits fell back to memory with `DEGRADED_DAILY_CAP` (at most once a minute) |
+| `market_boards_failed` | warn | One or more job boards failed, with the reason per board |
+| `market_details_failed` | warn | Posting detail fetches failed; the result is marked `degraded` |
 
 ## Deploying (Vercel)
 
@@ -183,8 +207,10 @@ It never contains the skills text, the goal text, the prompt, the IP or the key.
 2. Strongly recommended: add Upstash Redis from the Vercel Marketplace so the rate
    limits and daily cap are shared across instances. Without it they apply per warm
    instance only.
-3. `vercel.json` gives the function `maxDuration: 60`. This leaves room for two 20 s
-   attempts.
+3. Set `RATE_LIMIT_SALT` to a random value.
+4. `vercel.json` gives `/api/analyze` `maxDuration: 60` (the LLM client stops at 50 s)
+   and `/api/market` 30 (worst case 23 s). Endpoints and limits are listed once in
+   `server/routes.js`; `tests/routes.test.js` fails if they drift.
 
 ## Known limits
 

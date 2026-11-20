@@ -36,3 +36,4 @@ test-results
 .impeccable/review/
 .impeccable/questions/
 .impeccable/build/
+.impeccable/hook.cache.json
