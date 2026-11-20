@@ -15,7 +15,7 @@ const market = {
 const respond = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
 const addSkill = (value) => {
-  const input = screen.getByLabelText('Current skills');
+  const input = screen.getByRole('combobox', { name: /your skills/i });
   fireEvent.change(input, { target: { value } });
   fireEvent.keyDown(input, { key: 'Enter' });
 };
@@ -31,7 +31,7 @@ describe('App: slip → tickets → timetable', () => {
   it('adds skills as chips (Enter, comma, suggestion) and removes them', () => {
     render(<App />);
     addSkill('React');
-    const input = screen.getByLabelText('Current skills');
+    const input = screen.getByRole('combobox', { name: /your skills/i });
     fireEvent.change(input, { target: { value: 'Python,' } });
     fireEvent.change(input, { target: { value: 'Dock' } });
     fireEvent.keyDown(input, { key: 'ArrowDown' });
@@ -64,7 +64,7 @@ describe('App: slip → tickets → timetable', () => {
     render(<App />);
     addSkill('JavaScript');
     addSkill('React');
-    fireEvent.change(screen.getByLabelText('Target role'), { target: { value: 'Full Stack Developer' } });
+    fireEvent.change(screen.getByRole('combobox', { name: /target role/i }), { target: { value: 'Full Stack Developer' } });
     fireEvent.click(screen.getByRole('button', { name: /Plan my route/ }));
 
     await screen.findByRole('heading', { name: 'Your next three tickets' });
@@ -103,7 +103,7 @@ describe('App: slip → tickets → timetable', () => {
     ));
     render(<App />);
     addSkill('React');
-    fireEvent.change(screen.getByLabelText('Target role'), { target: { value: 'Full Stack Developer' } });
+    fireEvent.change(screen.getByRole('combobox', { name: /target role/i }), { target: { value: 'Full Stack Developer' } });
     fireEvent.click(screen.getByRole('button', { name: /Plan my route/ }));
     await screen.findByText(/You hold/);
     await waitFor(() => expect(screen.getAllByRole('button', { name: /Punch when learned/ }).length).toBe(3));

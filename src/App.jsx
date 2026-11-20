@@ -11,6 +11,7 @@ import Signals from './components/Signals.jsx';
 import { NextTickets, Stub, Wallet } from './components/Tickets.jsx';
 import Timetable from './components/Timetable.jsx';
 import { pickNextSkills } from './lib/nextSkills.js';
+import { ApiError, isAbort, postJSON } from './lib/api.js';
 
 const LEARNED_KEY = 'skillmap.learned.v1';
 const loadLearned = () => {
@@ -172,48 +173,45 @@ export default function App() {
     [data, submitted, locationLabel, tickets, tab],
   );
 
+  /* Each run owns an AbortController; a newer run (or unmount) cancels the old
+     one, so a slow stale response can never overwrite newer results. */
+  const runRef = useRef(null);
+  useEffect(() => () => runRef.current?.abort(), []);
+
   /* Live job-posting data runs in parallel and independently of the AI report */
-  const loadMarket = async ({ goal: g, location: loc }) => {
+  const loadMarket = async ({ goal: g, location: loc }, signal) => {
     if (!g.trim()) { setMarketState({ status: 'needs-role' }); return; }
     setMarketState({ status: 'loading' });
     try {
-      const res = await fetch('/api/market', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ goal: g, location: loc }),
-      });
-      const json = await res.json().catch(() => null);
-      if (!res.ok || !json?.market) throw new Error(json?.error?.message || `HTTP ${res.status}`);
+      const json = await postJSON('/api/market', { goal: g, location: loc }, { signal });
+      if (!json.market) throw new ApiError('Job-posting data came back empty.');
       setMarketState({ status: 'ready', market: json.market });
     } catch (err) {
-      setMarketState({ status: 'error', error: err instanceof TypeError ? 'network error' : err.message });
+      if (isAbort(err)) return;
+      setMarketState({ status: 'error', error: err.network ? 'network error' : err.message });
     }
   };
 
   /* AI report — the server validates input, calls the model and validates the report */
   const analyze = async () => {
+    runRef.current?.abort();
+    const ac = new AbortController();
+    runRef.current = ac;
     const run = { skills: allSkills, goal, location };
     setSubmitted(run);
     setData(null); setMeta(null); setError(''); setTab(0);
     setLoading(true);
-    loadMarket(run);
+    loadMarket(run, ac.signal);
     try {
-      const res = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(run),
-      });
-      const json = await res.json().catch(() => null);
-      if (!res.ok || !json?.report) {
-        const issues = json?.error?.issues?.map(i => i.message).join(' · ');
-        throw new Error([json?.error?.message || `Something went wrong (HTTP ${res.status}).`, issues].filter(Boolean).join(' '));
-      }
+      const json = await postJSON('/api/analyze', run, { signal: ac.signal });
+      if (!json.report) throw new ApiError('We couldn’t put together a complete report this time. Please try again.');
       setData(json.report);
       setMeta(json.meta ?? null);
     } catch (err) {
-      setError(err instanceof TypeError ? 'We couldn’t reach SkillMap. Check your connection and try again.' : err.message);
+      if (isAbort(err)) return;
+      setError(err.message);
     } finally {
-      setLoading(false);
+      if (runRef.current === ac) setLoading(false);
     }
   };
 

@@ -14,10 +14,15 @@ export default function Timetable({ paths, tab, setTab, userSkills }) {
   const rows = path.steps.map(s => { elapsed += s.timeMonths; return { ...s, arrives: elapsed }; });
 
   const onKey = (e) => {
-    const dir = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
-    if (!dir) return;
+    const last = paths.length - 1;
+    const next = {
+      ArrowRight: tab === last ? 0 : tab + 1,
+      ArrowLeft: tab === 0 ? last : tab - 1,
+      Home: 0,
+      End: last,
+    }[e.key];
+    if (next === undefined) return;
     e.preventDefault();
-    const next = (tab + dir + paths.length) % paths.length;
     setTab(next);
     tabRefs.current[next]?.focus();
   };

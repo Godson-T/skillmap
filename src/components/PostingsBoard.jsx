@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Check, ExternalLink, Info } from 'lucide-react';
 import { canonicalSkill, normalizeSkillList } from '../../shared/skills.js';
+import { partialNote } from '../lib/marketCopy.js';
 
 const fmtTime = (iso) => {
   try { return new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }); } catch { return iso; }
@@ -55,8 +56,12 @@ export default function PostingsBoard({ state, userSkills, locationLabel }) {
             {market.companies.length > 0 && <> at {market.companies.length} compan{market.companies.length === 1 ? 'y' : 'ies'}</>}.
           </p>
 
-          {(market.scope === 'global' || (market.sampleSize > 0 && market.lowSample)) && (
+          {(market.scope === 'global' || (market.sampleSize > 0 && market.lowSample) || market.degraded) && (
             <div className="notes">
+              {market.degraded && (
+                <p><Info size={14} aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />
+                  {partialNote(market)}</p>
+              )}
               {market.scope === 'global' && (
                 <p><Info size={14} aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />
                   Only {market.localMatches} matching posting{market.localMatches === 1 ? '' : 's'} in {locationLabel} on the boards we track, so this counts all regions.</p>
