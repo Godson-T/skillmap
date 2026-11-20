@@ -13,15 +13,16 @@ export function routeStations(graph) {
   const held = nodes.filter(n => n.type === 'current');
   const dist = new Map(held.map(n => [n.id, 0]));
   const queue = held.map(n => n.id);
-  while (queue.length) {
-    const id = queue.shift();
+  for (let head = 0; head < queue.length; head++) { // index pointer: no O(n) shift()
+    const id = queue[head];
     for (const nb of adj.get(id) ?? []) {
       // the target role is the end of the line, never a way through to a station
       if (dist.has(nb) || type.get(nb) === 'target') continue;
       dist.set(nb, dist.get(id) + 1); queue.push(nb);
     }
   }
-  const order = (a, b) => (dist.get(a.id) ?? 99) - (dist.get(b.id) ?? 99) || nodes.indexOf(a) - nodes.indexOf(b);
+  const position = new Map(nodes.map((n, i) => [n.id, i]));
+  const order = (a, b) => (dist.get(a.id) ?? 99) - (dist.get(b.id) ?? 99) || position.get(a.id) - position.get(b.id);
   const label = new Map(nodes.map(n => [n.id, n.label]));
   const sorted = nodes.filter(n => n.type === 'bridge').sort(order);
   const bridges = sorted.map((n, i) => {

@@ -27,6 +27,8 @@ const MIN_LOCAL_SAMPLE = 10;
 export const LOW_SAMPLE = 30;
 const TOP_SKILLS = 15;
 const BOARD_FAILED = Symbol('board-failed');
+/** Upper bound on one uncached request: the last detail fetch may start just before the phase deadline. */
+export const WORST_CASE_MS = DETAIL_PHASE_DEADLINE_MS + DETAIL_TIMEOUT_MS;
 
 /** Tiny TTL cache with a size bound; expired entries are purged before live ones are evicted. */
 function ttlCache(max) {
