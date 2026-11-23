@@ -46,5 +46,8 @@
   },
   "engines": {
     "node": ">=22.12"
+  },
+  "optionalDependencies": {
+    "@rolldown/binding-win32-x64-msvc": "^1.2.19"
   }
 }
